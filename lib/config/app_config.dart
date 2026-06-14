@@ -26,22 +26,29 @@ class LlmConfig {
 class AppConfig {
   const AppConfig({
     this.vaultPath,
+    this.androidVaultUri,
     this.clipboardWatchingEnabled = false,
     this.llm = const LlmConfig(),
   });
 
   final String? vaultPath;
+  final String? androidVaultUri;
   final bool clipboardWatchingEnabled;
   final LlmConfig llm;
 
   AppConfig copyWith({
     String? vaultPath,
+    String? androidVaultUri,
     bool? clipboardWatchingEnabled,
     LlmConfig? llm,
     bool clearVaultPath = false,
+    bool clearAndroidVaultUri = false,
   }) {
     return AppConfig(
       vaultPath: clearVaultPath ? null : vaultPath ?? this.vaultPath,
+      androidVaultUri: clearAndroidVaultUri
+          ? null
+          : androidVaultUri ?? this.androidVaultUri,
       clipboardWatchingEnabled:
           clipboardWatchingEnabled ?? this.clipboardWatchingEnabled,
       llm: llm ?? this.llm,

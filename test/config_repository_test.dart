@@ -14,6 +14,7 @@ void main() {
     final config = await repository.load();
 
     expect(config.vaultPath, isNull);
+    expect(config.androidVaultUri, isNull);
     expect(config.clipboardWatchingEnabled, isFalse);
     expect(config.llm.baseUrl, 'https://api.deepseek.com');
     expect(config.llm.apiKey, isEmpty);
@@ -29,6 +30,7 @@ void main() {
     await repository.save(
       const AppConfig(
         vaultPath: r'D:\Vault',
+        androidVaultUri: 'content://tree/vault',
         clipboardWatchingEnabled: true,
         llm: LlmConfig(
           baseUrl: 'https://example.com',
@@ -41,6 +43,7 @@ void main() {
     final config = await repository.load();
 
     expect(config.vaultPath, r'D:\Vault');
+    expect(config.androidVaultUri, 'content://tree/vault');
     expect(config.clipboardWatchingEnabled, isTrue);
     expect(config.llm.baseUrl, 'https://example.com');
     expect(config.llm.apiKey, 'test-key');

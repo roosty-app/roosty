@@ -12,6 +12,7 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
   SharedPreferencesConfigRepository(this._preferences);
 
   static const _vaultPathKey = 'vaultPath';
+  static const _androidVaultUriKey = 'androidVaultUri';
   static const _clipboardWatchingEnabledKey = 'clipboardWatchingEnabled';
   static const _llmBaseUrlKey = 'llmBaseUrl';
   static const _llmApiKeyKey = 'llmApiKey';
@@ -23,6 +24,7 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
   Future<AppConfig> load() async {
     return AppConfig(
       vaultPath: _preferences.getString(_vaultPathKey),
+      androidVaultUri: _preferences.getString(_androidVaultUriKey),
       clipboardWatchingEnabled:
           _preferences.getBool(_clipboardWatchingEnabledKey) ?? false,
       llm: LlmConfig(
@@ -41,6 +43,13 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
       await _preferences.remove(_vaultPathKey);
     } else {
       await _preferences.setString(_vaultPathKey, vaultPath);
+    }
+
+    final androidVaultUri = config.androidVaultUri;
+    if (androidVaultUri == null || androidVaultUri.isEmpty) {
+      await _preferences.remove(_androidVaultUriKey);
+    } else {
+      await _preferences.setString(_androidVaultUriKey, androidVaultUri);
     }
 
     await _preferences.setBool(

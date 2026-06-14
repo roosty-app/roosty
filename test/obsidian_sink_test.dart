@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roosty/core/item.dart';
 import 'package:roosty/core/pipeline.dart';
+import 'package:roosty/sinks/android_saf_vault.dart';
 import 'package:roosty/sinks/obsidian_sink.dart';
 
 void main() {
@@ -76,4 +77,49 @@ void main() {
       expect(names, ['2026-06-14-中文-标题-2.md', '2026-06-14-中文-标题.md']);
     },
   );
+
+  test('writes markdown through Android SAF vault writer', () async {
+    final saf = _RecordingAndroidSafVault();
+    final sink = ObsidianSink.android(
+      vaultUri: 'content://tree/vault',
+      androidSaf: saf,
+    );
+    final item = Item(
+      url: 'https://example.com',
+      title: 'Example',
+      rawText: 'Body',
+      capturedAt: DateTime(2026, 6, 14),
+    );
+
+    await sink.write(item);
+
+    expect(saf.treeUri, 'content://tree/vault');
+    expect(saf.directoryName, roostyVaultDirectoryName);
+    expect(saf.fileName, '2026-06-14-Example.md');
+    expect(saf.content, contains('url: https://example.com'));
+  });
+}
+
+class _RecordingAndroidSafVault extends AndroidSafVault {
+  String? treeUri;
+  String? directoryName;
+  String? fileName;
+  String? content;
+
+  @override
+  Future<String?> pickDirectory() async => null;
+
+  @override
+  Future<String> writeTextFile({
+    required String treeUri,
+    required String directoryName,
+    required String fileName,
+    required String content,
+  }) async {
+    this.treeUri = treeUri;
+    this.directoryName = directoryName;
+    this.fileName = fileName;
+    this.content = content;
+    return fileName;
+  }
 }

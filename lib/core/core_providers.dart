@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,13 +8,27 @@ import '../config/config_providers.dart';
 import '../fetchers/web_fetcher.dart';
 import '../processors/llm_client.dart';
 import '../processors/summarize_processor.dart';
+import '../sinks/android_saf_vault.dart';
 import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
+import '../sources/share_intent_source.dart';
 import 'item.dart';
 import 'pipeline.dart';
 
+final isAndroidProvider = Provider<bool>((ref) {
+  return Platform.isAndroid;
+});
+
 final clipboardSourceProvider = Provider<ClipboardSource>((ref) {
   return ClipboardSource();
+});
+
+final shareIntentSourceProvider = Provider<ShareIntentSource>((ref) {
+  return ShareIntentSource();
+});
+
+final androidSafVaultProvider = Provider<AndroidSafVault>((ref) {
+  return const AndroidSafVault();
 });
 
 final webFetcherProvider = Provider<WebFetcher>((ref) {
@@ -35,15 +50,38 @@ final summarizeProcessorProvider = Provider<SummarizeProcessor>((ref) {
 
 final pipelineProvider = Provider<Pipeline>((ref) {
   final config = ref.watch(appConfigControllerProvider).value;
-  final vaultPath = config?.vaultPath;
+  final isAndroid = ref.watch(isAndroidProvider);
+  final sink = _buildObsidianSink(
+    config: config,
+    isAndroid: isAndroid,
+    androidSaf: ref.watch(androidSafVaultProvider),
+  );
   return Pipeline(
     fetchers: [ref.watch(webFetcherProvider)],
     processors: [ref.watch(summarizeProcessorProvider)],
-    sinks: vaultPath == null || vaultPath.trim().isEmpty
-        ? const []
-        : [ObsidianSink(vaultPath: vaultPath)],
+    sinks: sink == null ? const [] : [sink],
   );
 });
+
+ObsidianSink? _buildObsidianSink({
+  required AppConfig? config,
+  required bool isAndroid,
+  required AndroidSafVault androidSaf,
+}) {
+  if (config == null) {
+    return null;
+  }
+  if (isAndroid) {
+    final vaultUri = config.androidVaultUri;
+    return vaultUri == null || vaultUri.trim().isEmpty
+        ? null
+        : ObsidianSink.android(vaultUri: vaultUri, androidSaf: androidSaf);
+  }
+  final vaultPath = config.vaultPath;
+  return vaultPath == null || vaultPath.trim().isEmpty
+      ? null
+      : ObsidianSink(vaultPath: vaultPath);
+}
 
 final captureControllerProvider =
     NotifierProvider<CaptureController, CaptureState>(CaptureController.new);
@@ -84,15 +122,18 @@ class CaptureState {
 
 class CaptureController extends Notifier<CaptureState> {
   StreamSubscription<Item>? _clipboardSubscription;
+  StreamSubscription<Item>? _shareIntentSubscription;
 
   @override
   CaptureState build() {
     ref.onDispose(() {
       _clipboardSubscription?.cancel();
+      _shareIntentSubscription?.cancel();
     });
     ref.listen(appConfigControllerProvider, (_, next) {
       _syncClipboardWatching(next.value?.clipboardWatchingEnabled ?? false);
     }, fireImmediately: true);
+    _syncShareIntentWatching(ref.watch(isAndroidProvider));
     return const CaptureState();
   }
 
@@ -118,8 +159,8 @@ class CaptureController extends Notifier<CaptureState> {
 
   Future<void> archive(Item item) async {
     final config = ref.read(appConfigControllerProvider).value;
-    if (config?.vaultPath == null || config!.vaultPath!.trim().isEmpty) {
-      state = state.copyWith(message: '请先设置 Obsidian vault 路径');
+    if (!_hasWritableVault(config)) {
+      state = state.copyWith(message: '请先设置 Obsidian vault 目录');
       return;
     }
 
@@ -137,6 +178,10 @@ class CaptureController extends Notifier<CaptureState> {
     }
   }
 
+  Future<void> archiveShared(Item item) async {
+    await archive(item);
+  }
+
   void _syncClipboardWatching(bool enabled) {
     if (!enabled) {
       _clipboardSubscription?.cancel();
@@ -147,5 +192,27 @@ class CaptureController extends Notifier<CaptureState> {
         .read(clipboardSourceProvider)
         .watch()
         .listen(queue);
+  }
+
+  void _syncShareIntentWatching(bool enabled) {
+    if (!enabled) {
+      _shareIntentSubscription?.cancel();
+      _shareIntentSubscription = null;
+      return;
+    }
+    _shareIntentSubscription ??= ref
+        .read(shareIntentSourceProvider)
+        .watch()
+        .listen(archiveShared);
+  }
+
+  bool _hasWritableVault(AppConfig? config) {
+    if (config == null) {
+      return false;
+    }
+    if (ref.read(isAndroidProvider)) {
+      return config.androidVaultUri?.trim().isNotEmpty == true;
+    }
+    return config.vaultPath?.trim().isNotEmpty == true;
   }
 }

@@ -34,6 +34,11 @@ class AppConfigController extends AsyncNotifier<AppConfig> {
     await _save(current.copyWith(vaultPath: path.trim()));
   }
 
+  Future<void> updateAndroidVaultUri(String uri) async {
+    final current = state.value ?? await future;
+    await _save(current.copyWith(androidVaultUri: uri.trim()));
+  }
+
   Future<void> updateClipboardWatchingEnabled(bool enabled) async {
     final current = state.value ?? await future;
     await _save(current.copyWith(clipboardWatchingEnabled: enabled));

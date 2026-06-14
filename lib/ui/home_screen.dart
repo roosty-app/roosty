@@ -38,23 +38,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigControllerProvider);
     final captureState = ref.watch(captureControllerProvider);
+    final isAndroid = ref.watch(isAndroidProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Roosty')),
       body: appConfig.when(
         data: (config) {
-          _syncVaultController(config);
+          _syncVaultController(config, isAndroid: isAndroid);
           _syncLlmControllers(config.llm);
           return _HomeContent(
             config: config,
+            isAndroid: isAndroid,
             captureState: captureState,
             vaultPathController: _vaultPathController,
             llmBaseUrlController: _llmBaseUrlController,
             llmApiKeyController: _llmApiKeyController,
             llmModelController: _llmModelController,
             manualUrlController: _manualUrlController,
-            onChooseVault: () => _chooseVault(config),
-            onSaveVault: _saveVaultPath,
+            onChooseVault: () => _chooseVault(config, isAndroid: isAndroid),
+            onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
             onSaveLlm: _saveLlmConfig,
             onToggleClipboard: (enabled) {
               ref
@@ -76,8 +78,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _syncVaultController(AppConfig config) {
-    final vaultPath = config.vaultPath ?? '';
+  void _syncVaultController(AppConfig config, {required bool isAndroid}) {
+    final vaultPath = isAndroid
+        ? config.androidVaultUri ?? ''
+        : config.vaultPath ?? '';
     if (_syncedVaultPath != vaultPath &&
         _vaultPathController.text == (_syncedVaultPath ?? '')) {
       _vaultPathController.text = vaultPath;
@@ -99,7 +103,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _syncedLlmConfig = llm;
   }
 
-  Future<void> _chooseVault(AppConfig config) async {
+  Future<void> _chooseVault(AppConfig config, {required bool isAndroid}) async {
+    if (isAndroid) {
+      final uri = await ref.read(androidSafVaultProvider).pickDirectory();
+      if (uri == null || !mounted) {
+        return;
+      }
+      _vaultPathController.text = uri;
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .updateAndroidVaultUri(uri);
+      return;
+    }
+
     final path = await getDirectoryPath(
       initialDirectory: config.vaultPath,
       confirmButtonText: '选择',
@@ -109,10 +125,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
     _vaultPathController.text = path;
-    await _saveVaultPath();
+    await _saveVaultPath(isAndroid: isAndroid);
   }
 
-  Future<void> _saveVaultPath() async {
+  Future<void> _saveVaultPath({required bool isAndroid}) async {
+    if (isAndroid) {
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .updateAndroidVaultUri(_vaultPathController.text);
+      return;
+    }
     await ref
         .read(appConfigControllerProvider.notifier)
         .updateVaultPath(_vaultPathController.text);
@@ -146,6 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.config,
+    required this.isAndroid,
     required this.captureState,
     required this.vaultPathController,
     required this.llmBaseUrlController,
@@ -162,6 +185,7 @@ class _HomeContent extends StatelessWidget {
   });
 
   final AppConfig config;
+  final bool isAndroid;
   final CaptureState captureState;
   final TextEditingController vaultPathController;
   final TextEditingController llmBaseUrlController;
@@ -189,8 +213,8 @@ class _HomeContent extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: vaultPathController,
-                    decoration: const InputDecoration(
-                      labelText: 'Obsidian vault 路径',
+                    decoration: InputDecoration(
+                      labelText: isAndroid ? '授权目录 URI' : 'Obsidian vault 目录',
                       border: OutlineInputBorder(),
                     ),
                     onSubmitted: (_) => onSaveVault(),
@@ -198,7 +222,7 @@ class _HomeContent extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 IconButton.filledTonal(
-                  tooltip: '选择目录',
+                  tooltip: isAndroid ? '授权目录' : '选择目录',
                   onPressed: onChooseVault,
                   icon: const Icon(Icons.folder_open),
                 ),
@@ -269,7 +293,7 @@ class _HomeContent extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('剪贴板监听'),
                   value: config.clipboardWatchingEnabled,
-                  onChanged: onToggleClipboard,
+                  onChanged: isAndroid ? null : onToggleClipboard,
                   secondary: const Icon(Icons.content_paste_search),
                 ),
                 const SizedBox(height: 12),
