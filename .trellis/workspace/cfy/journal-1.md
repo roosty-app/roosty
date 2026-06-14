@@ -38,3 +38,37 @@ Initialized the Roosty Flutter skeleton for Windows and Android, defined the cor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: M1 desktop capture loop
+
+**Date**: 2026-06-14
+**Task**: M1 desktop capture loop
+**Branch**: `master`
+
+### Summary
+
+Implemented and verified the Windows desktop capture loop: clipboard confirmation, web fetch, pass-through processor, Obsidian markdown sink, UI wiring, tests, Windows build, and GUI end-to-end validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2234863` | (see git log) |
+| `d8fa76b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
