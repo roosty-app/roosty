@@ -72,3 +72,37 @@ Implemented and verified the Windows desktop capture loop: clipboard confirmatio
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: M2 AI summary
+
+**Date**: 2026-06-14
+**Task**: M2 AI summary
+**Branch**: `master`
+
+### Summary
+
+Implemented OpenAI-compatible AI summary processing, settings UI, markdown summary/tag output, graceful fallback tests, and recorded the processor contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `067a4a3` | (see git log) |
+| `82126bf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
