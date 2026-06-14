@@ -16,10 +16,10 @@
 
 ## 节点 checklist
 
-- [ ] T3.1 `receive_sharing_intent` 接入：配置 Android `AndroidManifest.xml` 的 intent-filter，接收 `text/plain`（含 URL）和分享的文本；冷启动 + 热启动两种分享场景都要处理
-- [ ] T3.2 `ShareIntentSource implements Source`：把分享进来的 text/url 归一化成 Item（提取其中 URL，识别 source 平台），喂进同一 Pipeline
-- [ ] T3.3 安卓 vault 目录：用 SAF（Storage Access Framework）让用户授权一个目录作为写入根，持久化授权 URI；ObsidianSink 在安卓上通过 SAF 写文件（桌面仍用直接文件写，做平台分支）
-- [ ] T3.4 安卓端到端验证：从真实 App 分享，确认归巢成功（必须实跑）
+- [x] T3.1 `receive_sharing_intent` 接入：配置 Android `AndroidManifest.xml` 的 intent-filter，接收 `text/plain`（含 URL）和分享的文本；冷启动 + 热启动两种分享场景都要处理
+- [x] T3.2 `ShareIntentSource implements Source`：把分享进来的 text/url 归一化成 Item（提取其中 URL，识别 source 平台），喂进同一 Pipeline
+- [x] T3.3 安卓 vault 目录：用 SAF（Storage Access Framework）让用户授权一个目录作为写入根，持久化授权 URI；ObsidianSink 在安卓上通过 SAF 写文件（桌面仍用直接文件写，做平台分支）
+- [x] T3.4 安卓端到端验证：从真实 App 分享，确认归巢成功（必须实跑）
 
 ## 关键约束
 

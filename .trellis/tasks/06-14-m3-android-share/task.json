@@ -3,7 +3,7 @@
   "name": "m3-android-share",
   "title": "M3 安卓分享菜单",
   "description": "Android 出现在系统分享菜单,接收分享内容进入同一管线",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
