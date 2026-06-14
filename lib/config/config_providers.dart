@@ -39,6 +39,11 @@ class AppConfigController extends AsyncNotifier<AppConfig> {
     await _save(current.copyWith(clipboardWatchingEnabled: enabled));
   }
 
+  Future<void> updateLlmConfig(LlmConfig llm) async {
+    final current = state.value ?? await future;
+    await _save(current.copyWith(llm: llm));
+  }
+
   Future<void> _save(AppConfig config) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {

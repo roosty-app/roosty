@@ -31,6 +31,24 @@ void main() {
   });
 
   test(
+    'keeps frontmatter summary on one line while body can stay detailed',
+    () {
+      final item = Item(
+        url: 'https://example.com/a',
+        title: 'Example Title',
+        summary: '一句话摘要\n\n- 要点一\n- 要点二',
+      );
+
+      final markdown = renderMarkdown(item);
+
+      expect(markdown, contains('summary: "一句话摘要"'));
+      expect(markdown, contains('## 摘要'));
+      expect(markdown, contains('- 要点一'));
+      expect(markdown, contains('- 要点二'));
+    },
+  );
+
+  test(
     'writes markdown under Roosty and appends suffix on duplicate',
     () async {
       final temp = await Directory.systemTemp.createTemp('roosty_sink_test_');

@@ -17,12 +17,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _vaultPathController = TextEditingController();
+  final _llmBaseUrlController = TextEditingController();
+  final _llmApiKeyController = TextEditingController();
+  final _llmModelController = TextEditingController();
   final _manualUrlController = TextEditingController();
   String? _syncedVaultPath;
+  LlmConfig? _syncedLlmConfig;
 
   @override
   void dispose() {
     _vaultPathController.dispose();
+    _llmBaseUrlController.dispose();
+    _llmApiKeyController.dispose();
+    _llmModelController.dispose();
     _manualUrlController.dispose();
     super.dispose();
   }
@@ -37,13 +44,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: appConfig.when(
         data: (config) {
           _syncVaultController(config);
+          _syncLlmControllers(config.llm);
           return _HomeContent(
             config: config,
             captureState: captureState,
             vaultPathController: _vaultPathController,
+            llmBaseUrlController: _llmBaseUrlController,
+            llmApiKeyController: _llmApiKeyController,
+            llmModelController: _llmModelController,
             manualUrlController: _manualUrlController,
             onChooseVault: () => _chooseVault(config),
             onSaveVault: _saveVaultPath,
+            onSaveLlm: _saveLlmConfig,
             onToggleClipboard: (enabled) {
               ref
                   .read(appConfigControllerProvider.notifier)
@@ -73,6 +85,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _syncedVaultPath = vaultPath;
   }
 
+  void _syncLlmControllers(LlmConfig llm) {
+    final previous = _syncedLlmConfig;
+    if (previous == null || _llmBaseUrlController.text == previous.baseUrl) {
+      _llmBaseUrlController.text = llm.baseUrl;
+    }
+    if (previous == null || _llmApiKeyController.text == previous.apiKey) {
+      _llmApiKeyController.text = llm.apiKey;
+    }
+    if (previous == null || _llmModelController.text == previous.model) {
+      _llmModelController.text = llm.model;
+    }
+    _syncedLlmConfig = llm;
+  }
+
   Future<void> _chooseVault(AppConfig config) async {
     final path = await getDirectoryPath(
       initialDirectory: config.vaultPath,
@@ -90,6 +116,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref
         .read(appConfigControllerProvider.notifier)
         .updateVaultPath(_vaultPathController.text);
+  }
+
+  Future<void> _saveLlmConfig() async {
+    await ref
+        .read(appConfigControllerProvider.notifier)
+        .updateLlmConfig(
+          LlmConfig(
+            baseUrl: _llmBaseUrlController.text.trim(),
+            apiKey: _llmApiKeyController.text.trim(),
+            model: _llmModelController.text.trim(),
+          ),
+        );
   }
 
   Future<void> _archiveManualUrl() async {
@@ -110,9 +148,13 @@ class _HomeContent extends StatelessWidget {
     required this.config,
     required this.captureState,
     required this.vaultPathController,
+    required this.llmBaseUrlController,
+    required this.llmApiKeyController,
+    required this.llmModelController,
     required this.manualUrlController,
     required this.onChooseVault,
     required this.onSaveVault,
+    required this.onSaveLlm,
     required this.onToggleClipboard,
     required this.onManualArchive,
     required this.onConfirmPending,
@@ -122,9 +164,13 @@ class _HomeContent extends StatelessWidget {
   final AppConfig config;
   final CaptureState captureState;
   final TextEditingController vaultPathController;
+  final TextEditingController llmBaseUrlController;
+  final TextEditingController llmApiKeyController;
+  final TextEditingController llmModelController;
   final TextEditingController manualUrlController;
   final VoidCallback onChooseVault;
   final VoidCallback onSaveVault;
+  final VoidCallback onSaveLlm;
   final ValueChanged<bool> onToggleClipboard;
   final VoidCallback onManualArchive;
   final VoidCallback onConfirmPending;
@@ -161,6 +207,55 @@ class _HomeContent extends StatelessWidget {
                   tooltip: '保存',
                   onPressed: onSaveVault,
                   icon: const Icon(Icons.save),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: 'AI 摘要',
+            child: Column(
+              children: [
+                TextField(
+                  controller: llmBaseUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Base URL',
+                    hintText: 'https://api.deepseek.com',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => onSaveLlm(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: llmApiKeyController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'API Key',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => onSaveLlm(),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: llmModelController,
+                        decoration: const InputDecoration(
+                          labelText: '模型',
+                          hintText: 'deepseek-chat',
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (_) => onSaveLlm(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      tooltip: '保存 AI 设置',
+                      onPressed: onSaveLlm,
+                      icon: const Icon(Icons.save),
+                    ),
+                  ],
                 ),
               ],
             ),

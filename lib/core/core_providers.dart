@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_config.dart';
 import '../config/config_providers.dart';
 import '../fetchers/web_fetcher.dart';
-import '../processors/pass_through_processor.dart';
+import '../processors/llm_client.dart';
+import '../processors/summarize_processor.dart';
 import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
 import 'item.dart';
@@ -20,12 +22,23 @@ final webFetcherProvider = Provider<WebFetcher>((ref) {
   return fetcher;
 });
 
+final summarizeProcessorProvider = Provider<SummarizeProcessor>((ref) {
+  final llmConfig =
+      ref.watch(appConfigControllerProvider).value?.llm ?? const LlmConfig();
+  final processor = SummarizeProcessor(
+    config: llmConfig,
+    client: LlmClient(config: llmConfig),
+  );
+  ref.onDispose(processor.close);
+  return processor;
+});
+
 final pipelineProvider = Provider<Pipeline>((ref) {
   final config = ref.watch(appConfigControllerProvider).value;
   final vaultPath = config?.vaultPath;
   return Pipeline(
     fetchers: [ref.watch(webFetcherProvider)],
-    processors: const [PassThroughProcessor()],
+    processors: [ref.watch(summarizeProcessorProvider)],
     sinks: vaultPath == null || vaultPath.trim().isEmpty
         ? const []
         : [ObsidianSink(vaultPath: vaultPath)],

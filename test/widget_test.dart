@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roosty/config/config_providers.dart';
 import 'package:roosty/main.dart';
@@ -21,7 +22,15 @@ void main() {
 
     expect(find.text('Roosty'), findsOneWidget);
     expect(find.text('Vault'), findsOneWidget);
+    expect(find.text('AI 摘要'), findsOneWidget);
+    expect(find.text('Base URL'), findsOneWidget);
+    expect(find.text('API Key'), findsOneWidget);
+    expect(find.text('模型'), findsOneWidget);
     expect(find.text('剪贴板监听'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
     expect(find.text('归巢历史'), findsOneWidget);
   });
 }

@@ -40,6 +40,7 @@ String renderMarkdown(Item item) {
       : item.url;
   final author = item.author?.trim() ?? '';
   final summary = item.summary?.trim() ?? '';
+  final frontmatterSummary = _frontmatterSummary(summary);
   final body = item.rawText?.trim().isNotEmpty == true
       ? item.rawText!.trim()
       : fallbackBody;
@@ -51,7 +52,7 @@ source: ${item.source}
 url: ${item.url}
 author: "${_yamlDoubleQuoted(author)}"
 captured: ${formatDateTimeWithOffset(item.capturedAt)}
-summary: "${_yamlDoubleQuoted(summary)}"
+summary: "${_yamlDoubleQuoted(frontmatterSummary)}"
 tags: [${item.tags.join(', ')}]
 status: ${item.status}
 ---
@@ -82,6 +83,16 @@ String _formatDate(DateTime value) {
   final month = local.month.toString().padLeft(2, '0');
   final day = local.day.toString().padLeft(2, '0');
   return '$year-$month-$day';
+}
+
+String _frontmatterSummary(String value) {
+  for (final line in value.split('\n')) {
+    final trimmed = line.trim();
+    if (trimmed.isNotEmpty) {
+      return trimmed.replaceFirst(RegExp(r'^-\s*'), '');
+    }
+  }
+  return '';
 }
 
 String formatDateTimeWithOffset(DateTime value) {
