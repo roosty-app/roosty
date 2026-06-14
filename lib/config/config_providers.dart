@@ -17,3 +17,33 @@ final configRepositoryProvider = Provider<ConfigRepository>((ref) {
 final appConfigProvider = FutureProvider<AppConfig>((ref) {
   return ref.watch(configRepositoryProvider).load();
 });
+
+final appConfigControllerProvider =
+    AsyncNotifierProvider<AppConfigController, AppConfig>(
+      AppConfigController.new,
+    );
+
+class AppConfigController extends AsyncNotifier<AppConfig> {
+  @override
+  Future<AppConfig> build() {
+    return ref.watch(configRepositoryProvider).load();
+  }
+
+  Future<void> updateVaultPath(String path) async {
+    final current = state.value ?? await future;
+    await _save(current.copyWith(vaultPath: path.trim()));
+  }
+
+  Future<void> updateClipboardWatchingEnabled(bool enabled) async {
+    final current = state.value ?? await future;
+    await _save(current.copyWith(clipboardWatchingEnabled: enabled));
+  }
+
+  Future<void> _save(AppConfig config) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(configRepositoryProvider).save(config);
+      return config;
+    });
+  }
+}

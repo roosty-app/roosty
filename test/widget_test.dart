@@ -5,7 +5,9 @@ import 'package:roosty/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('shows the empty Roosty shell', (WidgetTester tester) async {
+  testWidgets('shows the Roosty desktop loop shell', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
 
@@ -18,6 +20,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Roosty'), findsOneWidget);
-    expect(find.text('准备归巢'), findsOneWidget);
+    expect(find.text('Vault'), findsOneWidget);
+    expect(find.text('剪贴板监听'), findsOneWidget);
+    expect(find.text('归巢历史'), findsOneWidget);
   });
 }

@@ -14,7 +14,42 @@ class Pipeline {
   final List<Processor> processors;
   final List<Sink> sinks;
 
-  Future<Item> run(Item item) {
-    throw UnimplementedError('Pipeline is implemented in M1.');
+  Future<Item> run(Item item) async {
+    var current = item;
+
+    Fetcher? fetcher;
+    for (final candidate in fetchers) {
+      if (candidate.canHandle(item.url)) {
+        fetcher = candidate;
+        break;
+      }
+    }
+    if (fetcher != null) {
+      try {
+        current = await fetcher.fetch(current);
+      } catch (_) {
+        current.rawText ??= fallbackBody;
+        current.title ??= current.url;
+      }
+    } else {
+      current.rawText ??= fallbackBody;
+      current.title ??= current.url;
+    }
+
+    for (final processor in processors) {
+      try {
+        current = await processor.process(current);
+      } catch (_) {
+        continue;
+      }
+    }
+
+    for (final sink in sinks) {
+      await sink.write(current);
+    }
+
+    return current;
   }
 }
+
+const fallbackBody = '> ⚠️ 正文未抓取，点击上方链接查看原文';
