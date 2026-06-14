@@ -17,11 +17,11 @@
 
 ## 节点 checklist
 
-- [ ] T2.1 `LlmClient`：封装 OpenAI 兼容 `POST {base_url}/chat/completions`（带 `Authorization: Bearer {key}`、model、messages），返回文本
-- [ ] T2.2 `SummarizeProcessor implements Processor`：输入 Item.rawText → 调 LlmClient → 解析出「一句话摘要 + 3-5 个要点 + 2-4 个标签」→ 回填 `Item.summary` / `Item.tags`。Prompt 要求模型按固定 JSON 结构返回，便于解析
-- [ ] T2.3 把 SummarizeProcessor 接进 Pipeline（替换 M1 的 pass-through，位置在 Fetcher 后、Sink 前）
-- [ ] T2.4 降级逻辑：未配置 key → 跳过；调用超时/失败 → catch 后跳过，记一条日志，继续 Sink
-- [ ] T2.5 设置页：填 base_url / key / model 三件套，默认占位示例填 DeepSeek（`https://api.deepseek.com` / `deepseek-chat`）；key 输入框做成密码态
+- [x] T2.1 `LlmClient`：封装 OpenAI 兼容 `POST {base_url}/chat/completions`（带 `Authorization: Bearer {key}`、model、messages），返回文本
+- [x] T2.2 `SummarizeProcessor implements Processor`：输入 Item.rawText → 调 LlmClient → 解析出「一句话摘要 + 3-5 个要点 + 2-4 个标签」→ 回填 `Item.summary` / `Item.tags`。Prompt 要求模型按固定 JSON 结构返回，便于解析
+- [x] T2.3 把 SummarizeProcessor 接进 Pipeline（替换 M1 的 pass-through，位置在 Fetcher 后、Sink 前）
+- [x] T2.4 降级逻辑：未配置 key → 跳过；调用超时/失败 → catch 后跳过，记一条日志，继续 Sink
+- [x] T2.5 设置页：填 base_url / key / model 三件套，默认占位示例填 DeepSeek（`https://api.deepseek.com` / `deepseek-chat`）；key 输入框做成密码态
 
 ## 关键约束
 

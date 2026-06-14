@@ -111,3 +111,94 @@ clipboardSource.watch().listen((item) {
 - Collapse whitespace to `-`.
 - Use `untitled` when the result is empty.
 - Add numeric suffixes for duplicates before `.md`.
+
+---
+
+## Scenario: AI Summary Processor
+
+### 1. Scope / Trigger
+
+- Trigger: features that add LLM-backed processing between `Fetcher` and `Sink`.
+- Applies to: `lib/processors/`, `lib/config/`, `lib/core/`, `lib/sinks/`,
+  and UI settings that persist LLM configuration.
+
+### 2. Signatures
+
+- `LlmClient.complete(List<Map<String, String>> messages): Future<String>`
+  posts one OpenAI-compatible chat completion request.
+- `SummarizeProcessor.process(Item item): Future<Item>` reads `item.rawText`
+  and mutates `item.summary` / `item.tags` when summary generation succeeds.
+- `AppConfig.llm: LlmConfig` owns `baseUrl`, `apiKey`, and `model`; UI writes
+  these through `AppConfigController.updateLlmConfig`.
+
+### 3. Contracts
+
+- Endpoint: `POST {baseUrl}/chat/completions`.
+- Headers: `Authorization: Bearer {apiKey}` and
+  `Content-Type: application/json`.
+- Request body fields:
+  - `model`: trimmed configured model name.
+  - `messages`: OpenAI chat messages with `role` and `content`.
+- Response body:
+  - Read `choices[0].message.content` as text.
+  - Processor expects that text to contain a JSON object with:
+    `summary: string`, `highlights: string[]`, `tags: string[]`.
+- `summary` follows the source content language. `item.summary` may contain
+  the one-sentence summary plus Markdown bullet highlights.
+- `ObsidianSink` writes only the first non-empty summary line to frontmatter
+  `summary`, while the `## 摘要` body keeps the detailed multiline summary.
+- Generated tags must be normalized into the `roosty/` namespace and appended
+  after the retained default `roosty/inbox` tag.
+- No LLM key may be hardcoded in code, tests, docs, or providers.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| `baseUrl`, `apiKey`, or `model` is blank | Skip summary; continue to sink |
+| `item.rawText` is null or blank | Skip summary; do not call LLM |
+| LLM request times out | Log one processor message; continue to sink |
+| LLM returns non-2xx, invalid JSON, or missing content | Log one processor message; continue to sink |
+| Generated tag lacks `roosty/` prefix | Prefix and normalize before writing |
+| Generated tag duplicates an existing tag | Keep one copy only |
+
+### 5. Good/Base/Bad Cases
+
+- Good: configured DeepSeek-compatible settings produce a one-sentence
+  summary, 3-5 highlight bullets, and 2-4 `roosty/` tags in the archived note.
+- Base: no API key is configured; the note is still written with source body and
+  default `roosty/inbox` tag.
+- Bad: the LLM returns malformed output; the capture is archived unchanged and
+  no exception escapes the processor.
+
+### 6. Tests Required
+
+- `LlmClient` unit test asserts endpoint, bearer header, model, and messages.
+- `SummarizeProcessor` unit tests assert success parsing, tag namespace
+  normalization, no-key / empty-rawText no-op, and failure fallback.
+- `ObsidianSink` test asserts frontmatter summary stays one line while
+  `## 摘要` keeps the detailed body.
+- Widget smoke test asserts the settings UI exposes base URL, API key, and model
+  fields, with the key field in password mode.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```dart
+final response = await llm.complete(messages);
+item.summary = response; // Unstructured text, tags lost, failures can leak.
+```
+
+#### Correct
+
+```dart
+try {
+  final response = await llm.complete(messages);
+  final parsed = parseFixedSummaryJson(response);
+  item.summary = formatSummary(parsed);
+  item.tags = mergeRoostyTags(item.tags, parsed.tags);
+} catch (_) {
+  return item; // Sink still archives the capture.
+}
+```
