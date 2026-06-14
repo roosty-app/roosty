@@ -1,6 +1,6 @@
-# Desktop Capture Pipeline
+# Capture Pipeline
 
-> Executable contracts for the Windows clipboard-to-Obsidian capture loop.
+> Executable contracts for the clipboard/share-to-Obsidian capture loop.
 
 ---
 
@@ -99,6 +99,119 @@ clipboardSource.watch().listen((item) {
 clipboardSource.watch().listen((item) {
   captureController.queue(item); // UI asks for confirmation first.
 });
+```
+
+---
+
+## Scenario: Android System Share Capture
+
+### 1. Scope / Trigger
+
+- Trigger: Android users choose Roosty from the system share sheet for
+  `ACTION_SEND` text payloads.
+- Applies to: `lib/sources/`, `lib/core/`, `lib/sinks/`, `lib/config/`,
+  `lib/ui/`, Android `MainActivity`, and `AndroidManifest.xml`.
+- Does not apply to: iOS share extensions or mobile background clipboard
+  watching.
+
+### 2. Signatures
+
+- `ShareIntentSource.watch(): Stream<Item>` emits shared items and never writes
+  files itself.
+- `itemsFromSharedMedia(List<SharedMediaFile>): List<Item>` normalizes plugin
+  payloads into the shared `Item` model.
+- `AndroidSafVault.pickDirectory(): Future<String?>` returns a persisted SAF
+  tree URI string or `null` when cancelled.
+- `AndroidSafVault.writeTextFile({treeUri, directoryName, fileName, content})`
+  writes UTF-8 markdown through the `roosty/android_saf` MethodChannel.
+- `ObsidianSink.android({vaultUri, androidSaf})` keeps the same
+  `Sink.write(Item)` interface as desktop.
+- `AppConfig.androidVaultUri` is the persisted Android vault authorization.
+
+### 3. Contracts
+
+- Android manifest must expose `MainActivity` as `singleTop` and add an
+  `ACTION_SEND` + `CATEGORY_DEFAULT` + `text/*` intent-filter.
+- Cold-start shares are read from
+  `ReceiveSharingIntent.instance.getInitialMedia()` and reset after a non-empty
+  payload; warm shares are read from `getMediaStream()`.
+- Shared text is built from non-empty `SharedMediaFile.path` and `message`.
+  If an HTTP(S) URL exists, the first URL becomes `Item.url`.
+- Source platform is derived from URL host:
+  `mp.weixin.qq.com -> wechat`, `x.com` / `*.x.com` / `twitter.com` /
+  `*.twitter.com -> x`, `xiaohongshu.com` / `xhslink.com -> xiaohongshu`,
+  known video hosts -> `video`, otherwise `web`.
+- Plain text without a URL becomes an `Item` with a synthetic
+  `roosty://shared-text/<timestamp>` URL, `rawText` set to the shared text, and
+  `source: web`; the pipeline must still archive it via fallback/no-fetch path.
+- Mobile system share is explicit user intent, so the controller calls
+  `archiveShared(item)` directly. Do not queue a pending confirmation.
+- Android must not enable clipboard watching; the UI disables the clipboard
+  toggle when `Platform.isAndroid` is true.
+- Android vault writes must use SAF: `ACTION_OPEN_DOCUMENT_TREE`, persisted
+  URI permission, and `<authorized tree>/Roosty/*.md`. Do not write arbitrary
+  filesystem paths on Android.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Shared payload has no text or URL | emit nothing |
+| Initial share payload is non-empty | emit items, then call `reset()` |
+| App has no Android vault URI | show a setup message; do not run sink |
+| User cancels SAF picker | keep existing config unchanged |
+| SAF write returns no file name | throw `PlatformException(empty_result)` |
+| Target markdown filename already exists | append `-2`, `-3`, etc. in SAF writer |
+| Web fetcher does not support synthetic text URL | keep `rawText` and continue to processors/sink |
+
+### 5. Good/Base/Bad Cases
+
+- Good: sharing a WeChat article URL to Roosty writes a markdown file in the
+  SAF-authorized `Roosty` directory without a confirmation prompt.
+- Base: sharing plain text writes a markdown note whose body is the shared
+  text and whose URL is synthetic.
+- Bad: SAF permission is missing; the app shows the vault setup message and
+  does not crash.
+
+### 6. Tests Required
+
+- Unit tests for initial share, warm stream share, reset behavior, plain text
+  fallback, and source-platform host detection.
+- Sink tests asserting `ObsidianSink.android` calls the SAF channel wrapper
+  with `directoryName: Roosty`, generated markdown filename, and content.
+- Config tests asserting `androidVaultUri` defaults to null and persists.
+- Widget tests asserting Android UI shows vault authorization and disables the
+  clipboard toggle.
+- Build verification from an ASCII junction: `flutter build apk --debug`.
+- End-to-end verification on a real device or emulator: share from another app,
+  authorize SAF vault, and confirm a markdown file is created.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```dart
+shareIntentSource.watch().listen(captureController.queue);
+// Mobile share already expresses intent; confirmation adds friction.
+```
+
+#### Correct
+
+```dart
+shareIntentSource.watch().listen(captureController.archiveShared);
+```
+
+#### Wrong
+
+```dart
+ObsidianSink(vaultPath: '/sdcard/Documents/Vault');
+// Android scoped storage can block arbitrary path writes.
+```
+
+#### Correct
+
+```dart
+ObsidianSink.android(vaultUri: config.androidVaultUri!);
 ```
 
 ---
