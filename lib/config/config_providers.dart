@@ -1,0 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'app_config.dart';
+import 'config_repository.dart';
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('SharedPreferences must be provided at startup.');
+});
+
+final configRepositoryProvider = Provider<ConfigRepository>((ref) {
+  return SharedPreferencesConfigRepository(
+    ref.watch(sharedPreferencesProvider),
+  );
+});
+
+final appConfigProvider = FutureProvider<AppConfig>((ref) {
+  return ref.watch(configRepositoryProvider).load();
+});
