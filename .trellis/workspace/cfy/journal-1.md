@@ -106,3 +106,38 @@ Implemented OpenAI-compatible AI summary processing, settings UI, markdown summa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: M3 Android share capture
+
+**Date**: 2026-06-14
+**Task**: M3 Android share capture
+**Branch**: `master`
+
+### Summary
+
+Implemented Android system share capture for text URLs, added SAF vault writing, documented the capture contract, and verified Flutter checks plus emulator share-to-markdown end to end.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `75e6205` | (see git log) |
+| `d0761e9` | (see git log) |
+| `a0876fa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
