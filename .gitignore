@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets / local config — never commit API keys or local overrides
+.env
+.env.*
+!.env.example
+*.local
+secrets.json
+config.local.json
+**/*.secret.*
