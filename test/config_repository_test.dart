@@ -16,6 +16,7 @@ void main() {
     expect(config.vaultPath, isNull);
     expect(config.androidVaultUri, isNull);
     expect(config.clipboardWatchingEnabled, isFalse);
+    expect(config.domainBlocklist, isEmpty);
     expect(config.llm.baseUrl, 'https://api.deepseek.com');
     expect(config.llm.apiKey, isEmpty);
     expect(config.llm.model, 'deepseek-chat');
@@ -32,6 +33,7 @@ void main() {
         vaultPath: r'D:\Vault',
         androidVaultUri: 'content://tree/vault',
         clipboardWatchingEnabled: true,
+        domainBlocklist: ['example.com'],
         llm: LlmConfig(
           baseUrl: 'https://example.com',
           apiKey: 'test-key',
@@ -45,6 +47,7 @@ void main() {
     expect(config.vaultPath, r'D:\Vault');
     expect(config.androidVaultUri, 'content://tree/vault');
     expect(config.clipboardWatchingEnabled, isTrue);
+    expect(config.domainBlocklist, ['example.com']);
     expect(config.llm.baseUrl, 'https://example.com');
     expect(config.llm.apiKey, 'test-key');
     expect(config.llm.model, 'test-model');

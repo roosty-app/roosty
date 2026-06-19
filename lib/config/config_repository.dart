@@ -14,6 +14,8 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
   static const _vaultPathKey = 'vaultPath';
   static const _androidVaultUriKey = 'androidVaultUri';
   static const _clipboardWatchingEnabledKey = 'clipboardWatchingEnabled';
+  // Legacy SharedPreferences adds the `flutter.` storage prefix itself.
+  static const _domainBlocklistKey = 'domainBlocklist';
   static const _llmBaseUrlKey = 'llmBaseUrl';
   static const _llmApiKeyKey = 'llmApiKey';
   static const _llmModelKey = 'llmModel';
@@ -27,6 +29,8 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
       androidVaultUri: _preferences.getString(_androidVaultUriKey),
       clipboardWatchingEnabled:
           _preferences.getBool(_clipboardWatchingEnabledKey) ?? false,
+      domainBlocklist:
+          _preferences.getStringList(_domainBlocklistKey) ?? const [],
       llm: LlmConfig(
         baseUrl:
             _preferences.getString(_llmBaseUrlKey) ?? const LlmConfig().baseUrl,
@@ -55,6 +59,10 @@ class SharedPreferencesConfigRepository implements ConfigRepository {
     await _preferences.setBool(
       _clipboardWatchingEnabledKey,
       config.clipboardWatchingEnabled,
+    );
+    await _preferences.setStringList(
+      _domainBlocklistKey,
+      config.domainBlocklist,
     );
     await _preferences.setString(_llmBaseUrlKey, config.llm.baseUrl);
     await _preferences.setString(_llmApiKeyKey, config.llm.apiKey);

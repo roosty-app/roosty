@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../core/item.dart';
+import '../core/source_platform.dart';
 import 'clipboard_source.dart';
 import 'source.dart';
 
@@ -88,30 +89,6 @@ Item? itemFromSharedMedia(SharedMediaFile file) {
     rawText: text,
     capturedAt: capturedAt,
   );
-}
-
-String detectSourcePlatform(String url) {
-  final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
-  if (host == 'mp.weixin.qq.com') {
-    return 'wechat';
-  }
-  if (host == 'x.com' || host.endsWith('.x.com') || host == 'twitter.com') {
-    return 'x';
-  }
-  if (host.endsWith('.twitter.com')) {
-    return 'x';
-  }
-  if (host.contains('xiaohongshu.com') || host == 'xhslink.com') {
-    return 'xiaohongshu';
-  }
-  if (host.contains('youtube.com') ||
-      host == 'youtu.be' ||
-      host.contains('bilibili.com') ||
-      host.contains('douyin.com') ||
-      host.contains('kuaishou.com')) {
-    return 'video';
-  }
-  return 'web';
 }
 
 String _titleFromText(String text) {

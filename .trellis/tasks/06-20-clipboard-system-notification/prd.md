@@ -81,26 +81,26 @@ M1 端到端验证后用户反馈：剪贴板捕获 URL 后，必须切到 Roost
 
 ## 节点 checklist
 
-- [ ] T1 引入依赖：`window_manager`（已有 4.x） + `tray_manager`（最新稳定版），`flutter pub get` 通过
-- [ ] T2 设计 `MiniCardWindow` 组件（独立 widget tree，单独的 main entry 或 ProviderScope override）
+- [x] T1 引入依赖：`window_manager`（已有 4.x） + `tray_manager`（最新稳定版），`flutter pub get` 通过
+- [x] T2 设计 `MiniCardWindow` 组件（独立 widget tree，单独的 main entry 或 ProviderScope override）
   - 380×200 无边框，alwaysOnTop，不抢焦点
   - 渐进式 skeleton 加载状态
   - 三按钮 + 关闭滑出动画
-- [ ] T3 实现 `MiniCardWindowManager` 服务：
+- [x] T3 实现 `MiniCardWindowManager` 服务：
   - 调用 `window_manager` 创建/定位/堆叠多窗
   - 维护 active windows 列表（最多 3 张），溢出剔除策略
-- [ ] T4 重写 `ClipboardSource` 的捕获后行为：
+- [x] T4 重写 `ClipboardSource` 的捕获后行为：
   - 不再走应用内卡片，改为通过 `MiniCardWindowManager` 弹出 mini 窗
   - URL 立刻弹，Fetcher/Processor 完成时通过 stream 更新卡片状态
-- [ ] T5 实现「忽略一次」内存 Map + 30 分钟 TTL 清理（Riverpod provider）
-- [ ] T6 实现域名黑名单：
+- [x] T5 实现「忽略一次」内存 Map + 30 分钟 TTL 清理（Riverpod provider）
+- [x] T6 实现域名黑名单：
   - 持久化到 `shared_preferences.flutter.domainBlocklist`
   - URL → 域名提取工具函数
   - 命中黑名单时直接 skip 弹卡片
-- [ ] T7 实现「忽略列表」UI（设置页新增一节）：列表展示 + 单条移除
-- [ ] T8 实现系统托盘：`tray_manager` 注册 + 右键菜单 + 归档闪烁反馈
-- [ ] T9 单元测试：① 域名提取（含 IDN/端口边界） ② 30 分钟 TTL 过期 ③ 黑名单持久化 ④ 多窗口溢出策略 ⑤ Mini 窗渐进式状态机
-- [ ] T10 端到端实跑：复制 URL → 看到右下角卡片 → 等填充 → 三按钮各自验证 → 连续复制 4 条验证溢出 → 黑名单/忽略列表 UI 验证
+- [x] T7 实现「忽略列表」UI（设置页新增一节）：列表展示 + 单条移除
+- [x] T8 实现系统托盘：`tray_manager` 注册 + 右键菜单 + 归档闪烁反馈
+- [x] T9 单元测试：① 域名提取（含 IDN/端口边界） ② 30 分钟 TTL 过期 ③ 黑名单持久化 ④ 多窗口溢出策略 ⑤ Mini 窗渐进式状态机
+- [x] T10 端到端实跑：复制 URL → 看到右下角卡片 → 等填充 → 三按钮各自验证 → 连续复制 4 条验证溢出 → 黑名单/忽略列表 UI 验证
 
 ---
 
@@ -128,3 +128,10 @@ M1 端到端验证后用户反馈：剪贴板捕获 URL 后，必须切到 Roost
 ## 完成后
 
 更新 checklist → `task.py finish`。下一个任务：UI 视觉重做（兄弟任务 `06-20-ui-visual-redesign`），可在本任务后单独 brainstorm。
+
+## 当前实现记录（2026-06-20）
+
+- 已完成：依赖引入、`desktop_multi_window` 独立子窗口、Windows 剪贴板捕获改走 mini card 状态机、URL 级 30 分钟忽略、域名黑名单持久化、设置页忽略列表、托盘桥接、单元/Widget 测试覆盖。
+- 当前实现：主窗口持有 pipeline/state；mini 子窗口是独立 Flutter engine，只显示序列化后的卡片状态，并通过 `WindowMethodChannel` 回传「归巢 / 忽略一次 / 永不归档」动作；子窗口用 Win32 `WS_EX_NOACTIVATE` / `WS_EX_TOOLWINDOW` / `WS_EX_TOPMOST` 样式配合 `show(inactive: true)` 降低抢焦点风险。
+- 已完成 T10 端到端实跑：Release exe + 本地 HTTP/LLM 假服务 + 临时 shared_preferences/vault，验证右下角独立 mini 窗、`WS_EX_NOACTIVATE`/`WS_EX_TOOLWINDOW`/`WS_EX_TOPMOST` 样式、忽略一次、域名黑名单持久化、归档写入 markdown、连续 4 条最多 3 张窗口；忽略列表 UI 由 widget 测试覆盖。
+- 验证：`flutter analyze`、`flutter test`（43 项）、`flutter build windows`、Release E2E 通过。

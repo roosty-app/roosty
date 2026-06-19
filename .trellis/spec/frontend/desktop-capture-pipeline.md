@@ -103,6 +103,157 @@ clipboardSource.watch().listen((item) {
 
 ---
 
+## Scenario: Windows Clipboard Mini Card Capture
+
+### 1. Scope / Trigger
+
+- Trigger: Windows clipboard URL captures that should ask for confirmation
+  without using the main in-app pending capture card.
+- Applies to: `lib/core/`, `lib/ui/`, `lib/config/`, `lib/main.dart`, Windows
+  plugin registration, and tests for URL rules / mini-card state.
+- Does not apply to: Android share capture, manual URL input, or macOS/Linux
+  clipboard UX. Those paths keep their existing behavior unless a task says
+  otherwise.
+
+### 2. Signatures
+
+- `CaptureController.handleClipboardCapture(Item item): void` routes Windows
+  clipboard captures to the mini-card controller and non-Windows captures to
+  the existing pending item.
+- `MiniCardController.show(Item item): void` creates one visible candidate card
+  unless the URL is temporarily ignored or its exact domain is blocked.
+- `MiniCardController.takeForArchive(String cardId): Future<Item>?` removes a
+  card immediately and returns the in-flight enriched item future.
+- `MiniCardController.ignoreOnce(String cardId): void` hides the card and stores
+  the exact URL in an in-memory TTL map.
+- `MiniCardController.blockDomain(String cardId): Future<void>` hides the card
+  and persists the URL host through `AppConfigController.addDomainToBlocklist`.
+- `Pipeline.enrich(Item item): Future<Item>` runs fetchers and processors only.
+- `Pipeline.write(Item item): Future<void>` writes an already-enriched item to
+  sinks.
+- `DesktopMiniCardWindowHost` owns desktop child-window lifecycle and registers
+  the `roosty/mini_card_actions` channel.
+- `MiniCardStandaloneApp` runs in the child engine and renders a serialized
+  `MiniCardWindowArguments` payload.
+- `applyMiniWindowStyles(): Future<void>` applies Windows extended styles:
+  `WS_EX_NOACTIVATE`, `WS_EX_TOOLWINDOW`, and `WS_EX_TOPMOST`.
+
+### 3. Contracts
+
+- `window_manager` manages only the current Flutter desktop window. It does not
+  create multiple independent Flutter windows. Use `desktop_multi_window` for
+  independent mini-card windows, then use `window_manager` inside each child
+  engine to size/position/style that child.
+- Windows runner must call `DesktopMultiWindowSetWindowCreatedCallback` and
+  `RegisterPlugins` for child engines; otherwise plugins like `window_manager`
+  and `screen_retriever` are missing in mini windows.
+- The parent window owns pipeline, history, ignore TTL, and domain blocklist.
+  Child windows receive serialized card state and send button actions back over
+  `WindowMethodChannel`; children must not run the archive pipeline directly.
+- Windows clipboard captures must not set `CaptureState.pendingItem`; they enter
+  `MiniCardController` instead. Manual URL input and non-Windows clipboard
+  captures may keep using the main pending card.
+- Mini-card state holds at most 3 cards. When a fourth URL arrives, remove the
+  oldest card and treat that URL as "ignore once".
+- Ignore-once is exact-URL, in memory only, and expires after 30 minutes.
+- Persistent domain blocking uses shared_preferences key
+  `flutter.domainBlocklist` with normalized exact hosts. Subdomains are not
+  implicitly blocked by a parent domain.
+- Enrichment for preview must not call sinks. Archiving from a mini card awaits
+  the enrichment future and then writes the enriched item.
+- Tray feedback is passive: no notification bubble; success/failure may update
+  tray title/tooltip briefly.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| URL is in the 30-minute ignore map | Do not show a card; do not persist the ignore |
+| URL host equals a blocked domain | Do not show a card |
+| URL host is a subdomain of a blocked parent | Show a card unless that exact subdomain is blocked |
+| More than 3 active mini cards | Remove oldest card and ignore that URL once |
+| Preview fetch or processing fails | Keep the card actionable and allow archive fallback |
+| User archives before preview completes | Remove card immediately; background enrichment continues before write |
+| Vault config is missing | Do not write; surface the existing capture message |
+| Desktop plugin is unavailable in widget tests | Catch `MissingPluginException`; tests must not fail |
+| Child-engine plugin callback is missing | Windows build/run may create windows with broken method channels; add callback in `windows/runner/flutter_window.cpp` |
+
+### 5. Good/Base/Bad Cases
+
+- Good: copying a URL on Windows creates a mini-card state entry immediately,
+  opens an independent right-bottom child window, fills title/summary as
+  enrichment finishes, and archives only after the user clicks archive.
+- Base: copying the same URL after "ignore once" does nothing for 30 minutes,
+  then shows a card again after TTL expiry.
+- Bad: using `window_manager` alone to resize the main app window and calling it
+  a true multi-window mini notification.
+
+### 6. Tests Required
+
+- Unit tests for domain extraction including port and IDN host handling.
+- Config repository test for default and persisted `flutter.domainBlocklist`.
+- Mini-card controller tests for ignore TTL, exact-domain blocking, max-3
+  overflow, and preview enrichment without sink writes.
+- Widget smoke test must still cover the desktop shell and settings UI.
+- Windows build verification after adding or changing desktop plugins.
+- Manual E2E is still required before marking the task complete: copy URL while
+  the main window is not foreground, verify right-bottom behavior, button
+  actions, vault output, tray feedback, and blacklist UI.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```dart
+clipboardSource.watch().listen(captureController.queue);
+// On Windows this still requires switching to the main window.
+```
+
+#### Correct
+
+```dart
+clipboardSource.watch().listen(captureController.handleClipboardCapture);
+// Windows uses mini cards; other platforms keep the pending-card path.
+```
+
+#### Wrong
+
+```dart
+await windowManager.setBounds(miniBounds);
+// This moves the main app window, not a separate notification window.
+```
+
+#### Correct
+
+```dart
+final controller = await WindowController.create(
+  WindowConfiguration(
+    hiddenAtLaunch: true,
+    arguments: jsonEncode(arguments.toJson()),
+  ),
+);
+// The child engine then uses window_manager to position its own window.
+```
+
+#### Wrong
+
+```dart
+await _archiveWith(() => miniCardController.takeForArchive(cardId)!);
+// takeForArchive returns the preview enrichment future only; no sink writes.
+```
+
+#### Correct
+
+```dart
+await _archiveWith(() async {
+  final item = await miniCardController.takeForArchive(cardId)!;
+  await pipeline.write(item);
+  return item;
+});
+```
+
+---
+
 ## Scenario: Android System Share Capture
 
 ### 1. Scope / Trigger

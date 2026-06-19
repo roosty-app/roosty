@@ -1,12 +1,33 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
+import 'core/mini_card.dart';
 import 'config/config_providers.dart';
 import 'ui/home_screen.dart';
+import 'ui/mini_card_standalone_app.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isWindows) {
+    await windowManager.ensureInitialized();
+    final windowController = await WindowController.fromCurrentEngine();
+    final windowArguments = _decodeWindowArguments(windowController.arguments);
+    if (windowArguments?['type'] == miniCardWindowType) {
+      runApp(
+        MiniCardStandaloneApp(
+          windowController: windowController,
+          initialArguments: MiniCardWindowArguments.fromJson(windowArguments!),
+        ),
+      );
+      return;
+    }
+  }
   final preferences = await SharedPreferences.getInstance();
 
   runApp(
@@ -15,6 +36,24 @@ Future<void> main() async {
       child: const RoostyApp(),
     ),
   );
+}
+
+Map<String, dynamic>? _decodeWindowArguments(String value) {
+  if (value.trim().isEmpty) {
+    return null;
+  }
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    if (decoded is Map) {
+      return Map<String, dynamic>.from(decoded);
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
 }
 
 class RoostyApp extends StatelessWidget {

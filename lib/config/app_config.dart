@@ -28,18 +28,21 @@ class AppConfig {
     this.vaultPath,
     this.androidVaultUri,
     this.clipboardWatchingEnabled = false,
+    this.domainBlocklist = const [],
     this.llm = const LlmConfig(),
   });
 
   final String? vaultPath;
   final String? androidVaultUri;
   final bool clipboardWatchingEnabled;
+  final List<String> domainBlocklist;
   final LlmConfig llm;
 
   AppConfig copyWith({
     String? vaultPath,
     String? androidVaultUri,
     bool? clipboardWatchingEnabled,
+    List<String>? domainBlocklist,
     LlmConfig? llm,
     bool clearVaultPath = false,
     bool clearAndroidVaultUri = false,
@@ -51,6 +54,7 @@ class AppConfig {
           : androidVaultUri ?? this.androidVaultUri,
       clipboardWatchingEnabled:
           clipboardWatchingEnabled ?? this.clipboardWatchingEnabled,
+      domainBlocklist: domainBlocklist ?? this.domainBlocklist,
       llm: llm ?? this.llm,
     );
   }

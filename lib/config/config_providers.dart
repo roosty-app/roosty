@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_config.dart';
 import 'config_repository.dart';
 import 'vault_discovery.dart';
+import '../core/url_rules.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be provided at startup.');
@@ -51,6 +52,33 @@ class AppConfigController extends AsyncNotifier<AppConfig> {
   Future<void> updateClipboardWatchingEnabled(bool enabled) async {
     final current = state.value ?? await future;
     await _save(current.copyWith(clipboardWatchingEnabled: enabled));
+  }
+
+  Future<void> addDomainToBlocklist(String domain) async {
+    final normalized = normalizeDomain(domain);
+    if (normalized == null) {
+      return;
+    }
+    final current = state.value ?? await future;
+    final domains = {
+      ...current.domainBlocklist.map((value) => normalizeDomain(value)),
+      normalized,
+    }.whereType<String>().toList()..sort();
+    await _save(current.copyWith(domainBlocklist: domains));
+  }
+
+  Future<void> removeDomainFromBlocklist(String domain) async {
+    final normalized = normalizeDomain(domain);
+    if (normalized == null) {
+      return;
+    }
+    final current = state.value ?? await future;
+    final domains = current.domainBlocklist
+        .map((value) => normalizeDomain(value))
+        .whereType<String>()
+        .where((value) => value != normalized)
+        .toList();
+    await _save(current.copyWith(domainBlocklist: domains));
   }
 
   Future<void> updateLlmConfig(LlmConfig llm) async {

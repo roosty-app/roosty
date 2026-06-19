@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:roosty/core/source_platform.dart';
 import 'package:roosty/sources/share_intent_source.dart';
 
 void main() {

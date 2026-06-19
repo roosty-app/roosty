@@ -15,6 +15,12 @@ class Pipeline {
   final List<Sink> sinks;
 
   Future<Item> run(Item item) async {
+    final current = await enrich(item);
+    await write(current);
+    return current;
+  }
+
+  Future<Item> enrich(Item item) async {
     var current = item;
 
     Fetcher? fetcher;
@@ -44,11 +50,13 @@ class Pipeline {
       }
     }
 
-    for (final sink in sinks) {
-      await sink.write(current);
-    }
-
     return current;
+  }
+
+  Future<void> write(Item item) async {
+    for (final sink in sinks) {
+      await sink.write(item);
+    }
   }
 }
 

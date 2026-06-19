@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,9 @@ import '../core/core_providers.dart';
 import '../core/item.dart';
 import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
+import 'desktop_mini_card_window_host.dart';
+import 'desktop_tray_bridge.dart';
+import 'mini_card_window.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -42,51 +47,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final appConfig = ref.watch(appConfigControllerProvider);
     final vaultCandidates = ref.watch(vaultCandidatesProvider);
     final captureState = ref.watch(captureControllerProvider);
+    final miniCardState = ref.watch(miniCardControllerProvider);
     final isAndroid = ref.watch(isAndroidProvider);
+    final isWindows = ref.watch(isWindowsProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Roosty')),
-      body: appConfig.when(
-        data: (config) {
-          _syncVaultController(config, isAndroid: isAndroid);
-          _syncLlmControllers(config.llm);
-          final showVaultDiscovery =
-              !isAndroid &&
-              (_forceShowVaultDiscovery ||
-                  (config.vaultPath?.trim().isEmpty ?? true));
-          return _HomeContent(
-            config: config,
-            isAndroid: isAndroid,
-            showVaultDiscovery: showVaultDiscovery,
-            vaultCandidates: vaultCandidates,
-            captureState: captureState,
-            vaultPathController: _vaultPathController,
-            llmBaseUrlController: _llmBaseUrlController,
-            llmApiKeyController: _llmApiKeyController,
-            llmModelController: _llmModelController,
-            manualUrlController: _manualUrlController,
-            onChooseVault: () => _chooseVault(config, isAndroid: isAndroid),
-            onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
-            onRediscoverVaults: _rediscoverVaults,
-            onUseDiscoveredVault: _useDiscoveredVault,
-            onSaveLlm: _saveLlmConfig,
-            onToggleClipboard: (enabled) {
-              ref
-                  .read(appConfigControllerProvider.notifier)
-                  .updateClipboardWatchingEnabled(enabled);
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(title: const Text('Roosty')),
+          body: appConfig.when(
+            data: (config) {
+              _syncVaultController(config, isAndroid: isAndroid);
+              _syncLlmControllers(config.llm);
+              final showVaultDiscovery =
+                  !isAndroid &&
+                  (_forceShowVaultDiscovery ||
+                      (config.vaultPath?.trim().isEmpty ?? true));
+              return _HomeContent(
+                config: config,
+                isAndroid: isAndroid,
+                showVaultDiscovery: showVaultDiscovery,
+                vaultCandidates: vaultCandidates,
+                captureState: captureState,
+                vaultPathController: _vaultPathController,
+                llmBaseUrlController: _llmBaseUrlController,
+                llmApiKeyController: _llmApiKeyController,
+                llmModelController: _llmModelController,
+                manualUrlController: _manualUrlController,
+                onChooseVault: () => _chooseVault(config, isAndroid: isAndroid),
+                onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
+                onRediscoverVaults: _rediscoverVaults,
+                onUseDiscoveredVault: _useDiscoveredVault,
+                onSaveLlm: _saveLlmConfig,
+                onRemoveBlockedDomain: _removeBlockedDomain,
+                onToggleClipboard: (enabled) {
+                  ref
+                      .read(appConfigControllerProvider.notifier)
+                      .updateClipboardWatchingEnabled(enabled);
+                },
+                onManualArchive: _archiveManualUrl,
+                onConfirmPending: () {
+                  ref.read(captureControllerProvider.notifier).archivePending();
+                },
+                onDismissPending: () {
+                  ref.read(captureControllerProvider.notifier).dismissPending();
+                },
+              );
             },
-            onManualArchive: _archiveManualUrl,
-            onConfirmPending: () {
-              ref.read(captureControllerProvider.notifier).archivePending();
-            },
-            onDismissPending: () {
-              ref.read(captureControllerProvider.notifier).dismissPending();
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('配置加载失败')),
-      ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const Center(child: Text('配置加载失败')),
+          ),
+        ),
+        if (!isAndroid && !isWindows && miniCardState.cards.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: MiniCardDeck(
+              cards: miniCardState.cards,
+              isArchiving: captureState.isArchiving,
+              onArchive: (id) {
+                unawaited(
+                  ref
+                      .read(captureControllerProvider.notifier)
+                      .archiveMiniCard(id),
+                );
+              },
+              onIgnoreOnce: (id) {
+                ref.read(miniCardControllerProvider.notifier).ignoreOnce(id);
+              },
+              onBlockDomain: (id) {
+                unawaited(
+                  ref.read(miniCardControllerProvider.notifier).blockDomain(id),
+                );
+              },
+            ),
+          ),
+        const DesktopMiniCardWindowHost(),
+        const DesktopTrayBridge(),
+      ],
     );
   }
 
@@ -236,6 +274,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
   }
 
+  Future<void> _removeBlockedDomain(String domain) async {
+    await ref
+        .read(appConfigControllerProvider.notifier)
+        .removeDomainFromBlocklist(domain);
+  }
+
   Future<void> _archiveManualUrl() async {
     final url = extractFirstUrl(_manualUrlController.text);
     if (url == null) {
@@ -266,6 +310,7 @@ class _HomeContent extends StatelessWidget {
     required this.onRediscoverVaults,
     required this.onUseDiscoveredVault,
     required this.onSaveLlm,
+    required this.onRemoveBlockedDomain,
     required this.onToggleClipboard,
     required this.onManualArchive,
     required this.onConfirmPending,
@@ -287,6 +332,7 @@ class _HomeContent extends StatelessWidget {
   final VoidCallback onRediscoverVaults;
   final ValueChanged<String> onUseDiscoveredVault;
   final VoidCallback onSaveLlm;
+  final ValueChanged<String> onRemoveBlockedDomain;
   final ValueChanged<bool> onToggleClipboard;
   final VoidCallback onManualArchive;
   final VoidCallback onConfirmPending;
@@ -429,6 +475,32 @@ class _HomeContent extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: '忽略列表',
+            child: config.domainBlocklist.isEmpty
+                ? const Text('暂无忽略域名')
+                : Column(
+                    children: config.domainBlocklist
+                        .map(
+                          (domain) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.block),
+                            title: Text(
+                              domain,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: IconButton(
+                              tooltip: '移除',
+                              onPressed: () => onRemoveBlockedDomain(domain),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
           if (captureState.pendingItem != null) ...[
             const SizedBox(height: 20),

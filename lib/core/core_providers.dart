@@ -13,10 +13,21 @@ import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
 import '../sources/share_intent_source.dart';
 import 'item.dart';
+import 'mini_card.dart';
 import 'pipeline.dart';
+import 'source_platform.dart';
+import 'url_rules.dart';
 
 final isAndroidProvider = Provider<bool>((ref) {
   return Platform.isAndroid;
+});
+
+final isWindowsProvider = Provider<bool>((ref) {
+  return Platform.isWindows;
+});
+
+final nowProvider = Provider<DateTime Function()>((ref) {
+  return DateTime.now;
 });
 
 final clipboardSourceProvider = Provider<ClipboardSource>((ref) {
@@ -90,6 +101,9 @@ final historyProvider = Provider<List<Item>>((ref) {
   return ref.watch(captureControllerProvider).history;
 });
 
+final miniCardControllerProvider =
+    NotifierProvider<MiniCardController, MiniCardState>(MiniCardController.new);
+
 class CaptureState {
   const CaptureState({
     this.pendingItem,
@@ -158,6 +172,24 @@ class CaptureController extends Notifier<CaptureState> {
   }
 
   Future<void> archive(Item item) async {
+    await _archiveWith(() => ref.read(pipelineProvider).run(item));
+  }
+
+  Future<void> archiveMiniCard(String cardId) async {
+    final item = ref
+        .read(miniCardControllerProvider.notifier)
+        .takeForArchive(cardId);
+    if (item == null) {
+      return;
+    }
+    await _archiveWith(() async {
+      final archived = await item;
+      await ref.read(pipelineProvider).write(archived);
+      return archived;
+    });
+  }
+
+  Future<void> _archiveWith(Future<Item> Function() archiveAction) async {
     final config = ref.read(appConfigControllerProvider).value;
     if (!_hasWritableVault(config)) {
       state = state.copyWith(message: '请先设置 Obsidian vault 目录');
@@ -166,7 +198,7 @@ class CaptureController extends Notifier<CaptureState> {
 
     state = state.copyWith(isArchiving: true, message: '正在归巢...');
     try {
-      final archived = await ref.read(pipelineProvider).run(item);
+      final archived = await archiveAction();
       state = state.copyWith(
         history: [archived, ...state.history],
         isArchiving: false,
@@ -182,6 +214,14 @@ class CaptureController extends Notifier<CaptureState> {
     await archive(item);
   }
 
+  void handleClipboardCapture(Item item) {
+    if (ref.read(isWindowsProvider)) {
+      ref.read(miniCardControllerProvider.notifier).show(item);
+      return;
+    }
+    queue(item);
+  }
+
   void _syncClipboardWatching(bool enabled) {
     if (!enabled) {
       _clipboardSubscription?.cancel();
@@ -191,7 +231,7 @@ class CaptureController extends Notifier<CaptureState> {
     _clipboardSubscription ??= ref
         .read(clipboardSourceProvider)
         .watch()
-        .listen(queue);
+        .listen(handleClipboardCapture);
   }
 
   void _syncShareIntentWatching(bool enabled) {
@@ -214,5 +254,145 @@ class CaptureController extends Notifier<CaptureState> {
       return config.androidVaultUri?.trim().isNotEmpty == true;
     }
     return config.vaultPath?.trim().isNotEmpty == true;
+  }
+}
+
+class MiniCardController extends Notifier<MiniCardState> {
+  static const maxCards = 3;
+  static const ignoreTtl = Duration(minutes: 30);
+
+  final Map<String, DateTime> _ignoredUrls = {};
+  final Map<String, Future<Item>> _enrichedItems = {};
+
+  @override
+  MiniCardState build() {
+    ref.onDispose(() {
+      _ignoredUrls.clear();
+      _enrichedItems.clear();
+    });
+    return const MiniCardState();
+  }
+
+  void show(Item item) {
+    _cleanupIgnoredUrls();
+    final config = ref.read(appConfigControllerProvider).value;
+    if (_isIgnored(item.url) ||
+        isDomainBlocked(item.url, config?.domainBlocklist ?? const [])) {
+      return;
+    }
+
+    item.source = detectSourcePlatform(item.url);
+    final now = ref.read(nowProvider)();
+    final id = 'mini-${now.microsecondsSinceEpoch}-${state.cards.length}';
+    final card = MiniCardModel(id: id, item: item, createdAt: now);
+    final cards = [...state.cards];
+    if (cards.length >= maxCards) {
+      final overflow = cards.removeAt(0);
+      _rememberIgnored(overflow.item.url);
+      _enrichedItems.remove(overflow.id);
+    }
+    state = state.copyWith(cards: [...cards, card]);
+    _enrichedItems[id] = _enrich(id, item);
+  }
+
+  Future<Item>? takeForArchive(String cardId) {
+    final card = _cardById(cardId);
+    if (card == null) {
+      return null;
+    }
+    _removeCard(cardId);
+    return _enrichedItems.remove(cardId) ?? Future<Item>.value(card.item);
+  }
+
+  void ignoreOnce(String cardId) {
+    final card = _cardById(cardId);
+    if (card == null) {
+      return;
+    }
+    _rememberIgnored(card.item.url);
+    _enrichedItems.remove(cardId);
+    _removeCard(cardId);
+  }
+
+  Future<void> blockDomain(String cardId) async {
+    final card = _cardById(cardId);
+    if (card == null) {
+      return;
+    }
+    final domain = extractDomain(card.item.url);
+    _enrichedItems.remove(cardId);
+    _removeCard(cardId);
+    if (domain != null) {
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .addDomainToBlocklist(domain);
+    }
+  }
+
+  bool isUrlIgnored(String url) {
+    _cleanupIgnoredUrls();
+    return _isIgnored(url);
+  }
+
+  Future<Item> _enrich(String cardId, Item item) async {
+    try {
+      final enriched = await ref.read(pipelineProvider).enrich(item);
+      _updateCard(
+        cardId,
+        (card) => card.copyWith(item: enriched, status: MiniCardStatus.ready),
+      );
+      return enriched;
+    } catch (error) {
+      _updateCard(
+        cardId,
+        (card) =>
+            card.copyWith(status: MiniCardStatus.failed, message: '预览失败，仍可归巢'),
+      );
+      return item;
+    }
+  }
+
+  void _updateCard(
+    String cardId,
+    MiniCardModel Function(MiniCardModel card) update,
+  ) {
+    final cards = [
+      for (final card in state.cards) card.id == cardId ? update(card) : card,
+    ];
+    state = state.copyWith(cards: cards);
+  }
+
+  MiniCardModel? _cardById(String cardId) {
+    for (final card in state.cards) {
+      if (card.id == cardId) {
+        return card;
+      }
+    }
+    return null;
+  }
+
+  void _removeCard(String cardId) {
+    state = state.copyWith(
+      cards: state.cards.where((card) => card.id != cardId).toList(),
+    );
+  }
+
+  void _rememberIgnored(String url) {
+    _ignoredUrls[url] = ref.read(nowProvider)();
+  }
+
+  bool _isIgnored(String url) {
+    final ignoredAt = _ignoredUrls[url];
+    if (ignoredAt == null) {
+      return false;
+    }
+    return ref.read(nowProvider)().difference(ignoredAt) < ignoreTtl;
+  }
+
+  void _cleanupIgnoredUrls() {
+    final now = ref.read(nowProvider)();
+    _ignoredUrls.removeWhere(
+      (_, ignoredAt) => now.difference(ignoredAt) >= ignoreTtl,
+    );
   }
 }

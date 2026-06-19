@@ -84,6 +84,46 @@ void main() {
     },
   );
 
+  testWidgets('shows and removes blocked domains from the ignore list', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'vaultPath': 'C:\\test-vault',
+      'domainBlocklist': ['block-test.example.com'],
+    });
+    final preferences = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          vaultDiscoveryProvider.overrideWithValue(
+            VaultDiscovery(platform: VaultDiscoveryPlatform.other),
+          ),
+        ],
+        child: const RoostyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text('block-test.example.com'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('忽略列表'), findsOneWidget);
+    expect(find.text('block-test.example.com'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('移除'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('block-test.example.com'), findsNothing);
+    expect(find.text('暂无忽略域名'), findsOneWidget);
+    expect(preferences.getStringList('domainBlocklist'), isEmpty);
+  });
+
   testWidgets(
     'uses discovered desktop vault and hides discovery after restart',
     (WidgetTester tester) async {
