@@ -47,8 +47,7 @@ class _FileSystemVaultWriter {
     required String fileName,
     required String content,
   }) async {
-    final directory = Directory(p.join(vaultPath, roostyVaultDirectoryName));
-    await directory.create(recursive: true);
+    final directory = await ensureRoostyDirectory(vaultPath);
 
     final file = await _nextAvailableFile(directory, fileName);
     await file.writeAsString(content);
@@ -87,6 +86,12 @@ class _AndroidSafVaultWriter {
 }
 
 const roostyVaultDirectoryName = 'Roosty';
+
+Future<Directory> ensureRoostyDirectory(String vaultPath) {
+  final directory = Directory(p.join(vaultPath, roostyVaultDirectoryName));
+  directory.createSync(recursive: true);
+  return Future.value(directory);
+}
 
 String buildMarkdownFileName(Item item) {
   final title = sanitizeFileName(item.title ?? item.url);

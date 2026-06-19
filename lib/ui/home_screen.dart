@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
 import '../config/config_providers.dart';
+import '../config/vault_discovery.dart';
 import '../core/core_providers.dart';
 import '../core/item.dart';
+import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -23,6 +25,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _manualUrlController = TextEditingController();
   String? _syncedVaultPath;
   LlmConfig? _syncedLlmConfig;
+  bool _forceShowVaultDiscovery = false;
 
   @override
   void dispose() {
@@ -37,6 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigControllerProvider);
+    final vaultCandidates = ref.watch(vaultCandidatesProvider);
     final captureState = ref.watch(captureControllerProvider);
     final isAndroid = ref.watch(isAndroidProvider);
 
@@ -46,9 +50,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         data: (config) {
           _syncVaultController(config, isAndroid: isAndroid);
           _syncLlmControllers(config.llm);
+          final showVaultDiscovery =
+              !isAndroid &&
+              (_forceShowVaultDiscovery ||
+                  (config.vaultPath?.trim().isEmpty ?? true));
           return _HomeContent(
             config: config,
             isAndroid: isAndroid,
+            showVaultDiscovery: showVaultDiscovery,
+            vaultCandidates: vaultCandidates,
             captureState: captureState,
             vaultPathController: _vaultPathController,
             llmBaseUrlController: _llmBaseUrlController,
@@ -57,6 +67,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             manualUrlController: _manualUrlController,
             onChooseVault: () => _chooseVault(config, isAndroid: isAndroid),
             onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
+            onRediscoverVaults: _rediscoverVaults,
+            onUseDiscoveredVault: _useDiscoveredVault,
             onSaveLlm: _saveLlmConfig,
             onToggleClipboard: (enabled) {
               ref
@@ -110,9 +122,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
       _vaultPathController.text = uri;
-      await ref
-          .read(appConfigControllerProvider.notifier)
-          .updateAndroidVaultUri(uri);
+      await _saveAndroidVaultUri(uri);
       return;
     }
 
@@ -125,19 +135,93 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
     _vaultPathController.text = path;
-    await _saveVaultPath(isAndroid: isAndroid);
+    await _saveDesktopVaultPath(path);
   }
 
   Future<void> _saveVaultPath({required bool isAndroid}) async {
     if (isAndroid) {
-      await ref
-          .read(appConfigControllerProvider.notifier)
-          .updateAndroidVaultUri(_vaultPathController.text);
+      await _saveAndroidVaultUri(_vaultPathController.text);
       return;
     }
-    await ref
-        .read(appConfigControllerProvider.notifier)
-        .updateVaultPath(_vaultPathController.text);
+    await _saveDesktopVaultPath(_vaultPathController.text);
+  }
+
+  Future<void> _saveDesktopVaultPath(String path) async {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) {
+      await ref.read(appConfigControllerProvider.notifier).updateVaultPath('');
+      return;
+    }
+
+    try {
+      await ensureRoostyDirectory(trimmed);
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .updateVaultPath(trimmed);
+      if (!mounted) {
+        return;
+      }
+      _vaultPathController.text = trimmed;
+      setState(() {
+        _forceShowVaultDiscovery = false;
+      });
+      ref
+          .read(captureControllerProvider.notifier)
+          .showMessage('已连接 Obsidian vault：$trimmed');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ref
+          .read(captureControllerProvider.notifier)
+          .showMessage('创建 Roosty 目录失败：$error');
+    }
+  }
+
+  Future<void> _saveAndroidVaultUri(String uri) async {
+    final trimmed = uri.trim();
+    if (trimmed.isEmpty) {
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .updateAndroidVaultUri('');
+      return;
+    }
+
+    try {
+      await ref
+          .read(androidSafVaultProvider)
+          .ensureDirectory(
+            treeUri: trimmed,
+            directoryName: roostyVaultDirectoryName,
+          );
+      await ref
+          .read(appConfigControllerProvider.notifier)
+          .updateAndroidVaultUri(trimmed);
+      if (!mounted) {
+        return;
+      }
+      _vaultPathController.text = trimmed;
+      ref.read(captureControllerProvider.notifier).showMessage('已授权归巢目录');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ref
+          .read(captureControllerProvider.notifier)
+          .showMessage('创建 Roosty 目录失败：$error');
+    }
+  }
+
+  void _rediscoverVaults() {
+    setState(() {
+      _forceShowVaultDiscovery = true;
+    });
+    ref.invalidate(vaultCandidatesProvider);
+  }
+
+  Future<void> _useDiscoveredVault(String path) async {
+    _vaultPathController.text = path;
+    await _saveDesktopVaultPath(path);
   }
 
   Future<void> _saveLlmConfig() async {
@@ -169,6 +253,8 @@ class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.config,
     required this.isAndroid,
+    required this.showVaultDiscovery,
+    required this.vaultCandidates,
     required this.captureState,
     required this.vaultPathController,
     required this.llmBaseUrlController,
@@ -177,6 +263,8 @@ class _HomeContent extends StatelessWidget {
     required this.manualUrlController,
     required this.onChooseVault,
     required this.onSaveVault,
+    required this.onRediscoverVaults,
+    required this.onUseDiscoveredVault,
     required this.onSaveLlm,
     required this.onToggleClipboard,
     required this.onManualArchive,
@@ -186,6 +274,8 @@ class _HomeContent extends StatelessWidget {
 
   final AppConfig config;
   final bool isAndroid;
+  final bool showVaultDiscovery;
+  final AsyncValue<List<VaultCandidate>> vaultCandidates;
   final CaptureState captureState;
   final TextEditingController vaultPathController;
   final TextEditingController llmBaseUrlController;
@@ -194,6 +284,8 @@ class _HomeContent extends StatelessWidget {
   final TextEditingController manualUrlController;
   final VoidCallback onChooseVault;
   final VoidCallback onSaveVault;
+  final VoidCallback onRediscoverVaults;
+  final ValueChanged<String> onUseDiscoveredVault;
   final VoidCallback onSaveLlm;
   final ValueChanged<bool> onToggleClipboard;
   final VoidCallback onManualArchive;
@@ -206,6 +298,14 @@ class _HomeContent extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (showVaultDiscovery) ...[
+            _VaultDiscoveryCard(
+              candidates: vaultCandidates,
+              onUseVault: onUseDiscoveredVault,
+              onChooseOther: onChooseVault,
+            ),
+            const SizedBox(height: 20),
+          ],
           _Section(
             title: 'Vault',
             child: Row(
@@ -226,6 +326,14 @@ class _HomeContent extends StatelessWidget {
                   onPressed: onChooseVault,
                   icon: const Icon(Icons.folder_open),
                 ),
+                if (!isAndroid) ...[
+                  const SizedBox(width: 8),
+                  IconButton.outlined(
+                    tooltip: '重新检测 Obsidian 库',
+                    onPressed: onRediscoverVaults,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 IconButton.filled(
                   tooltip: '保存',
@@ -371,6 +479,212 @@ class _Section extends StatelessWidget {
         child,
       ],
     );
+  }
+}
+
+class _VaultDiscoveryCard extends StatelessWidget {
+  const _VaultDiscoveryCard({
+    required this.candidates,
+    required this.onUseVault,
+    required this.onChooseOther,
+  });
+
+  final AsyncValue<List<VaultCandidate>> candidates;
+  final ValueChanged<String> onUseVault;
+  final VoidCallback onChooseOther;
+
+  @override
+  Widget build(BuildContext context) {
+    return candidates.when(
+      data: (items) => _buildData(context, items),
+      loading: () => _VaultDiscoveryFrame(
+        title: '正在检测 Obsidian 库',
+        child: const LinearProgressIndicator(),
+      ),
+      error: (_, _) => _buildData(context, const []),
+    );
+  }
+
+  Widget _buildData(BuildContext context, List<VaultCandidate> items) {
+    if (items.isEmpty) {
+      return _VaultDiscoveryFrame(
+        title: '未检测到 Obsidian',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('请选择一个目录作为归档库。'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onChooseOther,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('选择目录'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (items.length == 1) {
+      final candidate = items.single;
+      return _VaultDiscoveryFrame(
+        title: '检测到 Obsidian 库',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: () => onUseVault(candidate.path),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '使用 ${candidate.path}',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onChooseOther,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('选其他目录'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _VaultDiscoveryFrame(
+      title: '检测到多个 Obsidian 库',
+      child: _VaultCandidateList(candidates: items, onUseVault: onUseVault),
+    );
+  }
+}
+
+class _VaultDiscoveryFrame extends StatelessWidget {
+  const _VaultDiscoveryFrame({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.account_tree_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VaultCandidateList extends StatefulWidget {
+  const _VaultCandidateList({
+    required this.candidates,
+    required this.onUseVault,
+  });
+
+  final List<VaultCandidate> candidates;
+  final ValueChanged<String> onUseVault;
+
+  @override
+  State<_VaultCandidateList> createState() => _VaultCandidateListState();
+}
+
+class _VaultCandidateListState extends State<_VaultCandidateList> {
+  String? _selectedPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSelectedPath();
+  }
+
+  @override
+  void didUpdateWidget(covariant _VaultCandidateList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncSelectedPath();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RadioGroup<String>(
+          groupValue: _selectedPath,
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _selectedPath = value;
+              });
+            }
+          },
+          child: Column(
+            children: widget.candidates
+                .map(
+                  (candidate) => RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    value: candidate.path,
+                    title: Text(candidate.path),
+                    subtitle: candidate.isOpen ? const Text('当前打开') : null,
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: _selectedPath == null
+              ? null
+              : () => widget.onUseVault(_selectedPath!),
+          icon: const Icon(Icons.check),
+          label: const Text('使用此库'),
+        ),
+      ],
+    );
+  }
+
+  void _syncSelectedPath() {
+    final current = _selectedPath;
+    if (current != null &&
+        widget.candidates.any((candidate) => candidate.path == current)) {
+      return;
+    }
+    _selectedPath = widget.candidates.firstOrNull?.path;
   }
 }
 

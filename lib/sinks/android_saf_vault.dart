@@ -11,6 +11,22 @@ class AndroidSafVault {
     return _channel.invokeMethod<String>('pickDirectory');
   }
 
+  Future<void> ensureDirectory({
+    required String treeUri,
+    required String directoryName,
+  }) async {
+    final ensured = await _channel.invokeMethod<bool>('ensureDirectory', {
+      'treeUri': treeUri,
+      'directoryName': directoryName,
+    });
+    if (ensured != true) {
+      throw PlatformException(
+        code: 'empty_result',
+        message: 'Android SAF ensureDirectory returned no confirmation.',
+      );
+    }
+  }
+
   Future<String> writeTextFile({
     required String treeUri,
     required String directoryName,

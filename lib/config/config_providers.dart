@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_config.dart';
 import 'config_repository.dart';
+import 'vault_discovery.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be provided at startup.');
@@ -16,6 +17,14 @@ final configRepositoryProvider = Provider<ConfigRepository>((ref) {
 
 final appConfigProvider = FutureProvider<AppConfig>((ref) {
   return ref.watch(configRepositoryProvider).load();
+});
+
+final vaultDiscoveryProvider = Provider<VaultDiscovery>((ref) {
+  return VaultDiscovery();
+});
+
+final vaultCandidatesProvider = FutureProvider<List<VaultCandidate>>((ref) {
+  return ref.watch(vaultDiscoveryProvider).discover();
 });
 
 final appConfigControllerProvider =

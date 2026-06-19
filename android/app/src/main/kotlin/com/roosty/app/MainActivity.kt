@@ -17,6 +17,18 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickDirectory" -> pickDirectory(result)
+                "ensureDirectory" -> {
+                    try {
+                        val treeUri = call.argument<String>("treeUri")
+                            ?: throw IllegalArgumentException("treeUri is required")
+                        val directoryName = call.argument<String>("directoryName")
+                            ?: throw IllegalArgumentException("directoryName is required")
+                        ensureDirectory(treeUri, directoryName)
+                        result.success(true)
+                    } catch (error: Exception) {
+                        result.error("ensure_failed", error.message, null)
+                    }
+                }
                 "writeTextFile" -> {
                     try {
                         val treeUri = call.argument<String>("treeUri")
@@ -91,19 +103,8 @@ class MainActivity : FlutterActivity() {
         fileName: String,
         content: String,
     ): String {
+        val directoryUri = ensureDirectory(treeUriValue, directoryName)
         val treeUri = Uri.parse(treeUriValue)
-        val rootUri = DocumentsContract.buildDocumentUriUsingTree(
-            treeUri,
-            DocumentsContract.getTreeDocumentId(treeUri),
-        )
-        val directoryUri = findChild(treeUri, rootUri, directoryName, DIRECTORY_MIME_TYPE)
-            ?: DocumentsContract.createDocument(
-                contentResolver,
-                rootUri,
-                DIRECTORY_MIME_TYPE,
-                directoryName,
-            )
-            ?: throw IllegalStateException("Could not create $directoryName directory")
         val availableName = nextAvailableName(treeUri, directoryUri, fileName)
         val fileUri = DocumentsContract.createDocument(
             contentResolver,
@@ -119,6 +120,22 @@ class MainActivity : FlutterActivity() {
             stream.write(content.toByteArray(StandardCharsets.UTF_8))
         }
         return availableName
+    }
+
+    private fun ensureDirectory(treeUriValue: String, directoryName: String): Uri {
+        val treeUri = Uri.parse(treeUriValue)
+        val rootUri = DocumentsContract.buildDocumentUriUsingTree(
+            treeUri,
+            DocumentsContract.getTreeDocumentId(treeUri),
+        )
+        return findChild(treeUri, rootUri, directoryName, DIRECTORY_MIME_TYPE)
+            ?: DocumentsContract.createDocument(
+                contentResolver,
+                rootUri,
+                DIRECTORY_MIME_TYPE,
+                directoryName,
+            )
+            ?: throw IllegalStateException("Could not create $directoryName directory")
     }
 
     private fun nextAvailableName(treeUri: Uri, parentUri: Uri, fileName: String): String {
