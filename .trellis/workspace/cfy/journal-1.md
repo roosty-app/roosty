@@ -141,3 +141,37 @@ Implemented Android system share capture for text URLs, added SAF vault writing,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Vault auto-discovery + C drive cache offload
+
+**Date**: 2026-06-20
+**Task**: Vault auto-discovery + C drive cache offload
+**Branch**: `master`
+
+### Summary
+
+实现 Obsidian vault 自动发现首启卡片 (VaultDiscovery 服务 + Riverpod provider + 立建 Roosty 子目录),根治 M1 暴露的随手填路径体验问题。Codex 完成 T1-T7,主 session 验证 T8 端到端实跑通过 (Roosty 自动检测到 D:\用户目录\我的文档\Obsidian Vault,卡片单 vault 一键体验,Roosty/ 子目录 7 秒内创建)。trellis-check GO。途中 C 盘空间被构建吃爆 (3.1 GB 剩),把 RUSTUP_HOME / CARGO_HOME / PUB_CACHE 永久重定向到 E:\Temp,释放约 3 GB,纯英文路径下 cargokit Rust 编译正常。flutter analyze 零问题, 32 测试全过 (新增 6 个 vault 用例)。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dfebf51` | (see git log) |
+| `fce1e5f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
