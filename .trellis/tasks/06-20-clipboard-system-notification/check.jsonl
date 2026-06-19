@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查代码质量、错误处理、降级是否到位"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "检查 Riverpod provider/notifier 用法是否规范"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "检查 MiniCardWindow 是否符合组件规范"}
+{"file": ".trellis/spec/frontend/desktop-capture-pipeline.md", "reason": "检查捕获管线改动是否破坏既有契约"}

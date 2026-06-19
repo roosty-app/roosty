@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec 总目录，本任务是 frontend 任务"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "新增 MiniCardWindowManager + 忽略 Map + 黑名单 provider，遵循 Riverpod 项目约定"}
+{"file": ".trellis/spec/frontend/desktop-capture-pipeline.md", "reason": "本任务重写 ClipboardSource 捕获后行为，必须吃透现有桌面捕获管线"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "新增多个服务/组件，文件放置位置需符合分层"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "MiniCardWindow 是新组件，遵循组件规范"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "通用质量约束（命名/错误处理/日志/降级）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务跨 Source/UI/服务/持久化多层"}
+{"file": ".trellis/tasks/archive/2026-06/06-15-auto-discover-vault/prd.md", "reason": "已归档的 vault 任务 prd 是同类 UX + Riverpod + shared_preferences 案例，复用模式以避免发明轮子"}
