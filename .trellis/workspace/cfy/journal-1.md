@@ -208,3 +208,36 @@ Added Trellis planning artifacts for the UX overhaul parent task and its clipboa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Windows clipboard mini capture windows
+
+**Date**: 2026-06-20
+**Task**: Windows clipboard mini capture windows
+**Branch**: `master`
+
+### Summary
+
+Implemented Windows clipboard mini-card capture with independent no-activate child windows, tray feedback, ignore-once/domain blocklist flows, settings UI, tests, spec updates, and Release E2E verification.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `77e024b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
