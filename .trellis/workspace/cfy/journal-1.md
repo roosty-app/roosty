@@ -175,3 +175,36 @@ Implemented Android system share capture for text URLs, added SAF vault writing,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Add UX overhaul task plans
+
+**Date**: 2026-06-20
+**Task**: Add UX overhaul task plans
+**Branch**: `master`
+
+### Summary
+
+Added Trellis planning artifacts for the UX overhaul parent task and its clipboard notification / UI redesign children, then archived the clipboard notification task per finish-work.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f1185a1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
