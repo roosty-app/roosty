@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec 总目录，本任务是 frontend 任务"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "新增 VaultDiscovery 的 Riverpod provider，必须遵循项目状态管理约定"}
+{"file": ".trellis/spec/frontend/desktop-capture-pipeline.md", "reason": "vault 配置是管线起点，新增 UX 不能破坏管线现有契约"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "VaultDiscovery 作为新服务，文件放置位置需符合分层结构"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "首启卡片是新组件，遵循组件规范"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "通用质量约束（命名/错误处理/日志/失败统一返空）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务跨配置层、服务层、UI 层，需要跨层思考指引"}
