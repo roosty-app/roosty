@@ -241,3 +241,36 @@ Implemented Windows clipboard mini-card capture with independent no-activate chi
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Tray lifecycle and resident window behavior
+
+**Date**: 2026-06-20
+**Task**: Tray lifecycle and resident window behavior
+**Branch**: `master`
+
+### Summary
+
+Fixed tray mouse handling, resident close/minimize behavior, session-only clipboard pause state sync, desktop lifecycle tests, and recorded tray-manager Windows event research.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b2e7382` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

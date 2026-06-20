@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-06-20
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~243 | Active |
+| `journal-1.md` | ~276 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-06-20 | Tray lifecycle and resident window behavior | `b2e7382` | `master` |
 | 7 | 2026-06-20 | Windows clipboard mini capture windows | `77e024b` | `master` |
 | 6 | 2026-06-20 | Add UX overhaul task plans | `f1185a1` | `master` |
 | 5 | 2026-06-20 | Vault auto-discovery + C drive cache offload | `dfebf51`, `fce1e5f` | `master` |
