@@ -9,6 +9,8 @@ import 'package:window_manager/window_manager.dart';
 
 import 'core/mini_card.dart';
 import 'config/config_providers.dart';
+import 'theme/dark_theme.dart';
+import 'theme/light_theme.dart';
 import 'ui/home_screen.dart';
 import 'ui/mini_card_standalone_app.dart';
 
@@ -69,9 +71,9 @@ class RoostyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Roosty',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F6F63)),
-      ),
+      theme: lightRoostyTheme,
+      darkTheme: darkRoostyTheme,
+      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

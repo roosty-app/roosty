@@ -1,1 +1,9 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec 总目录"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "本任务在所有组件层重做样式,必须遵循组件规范并补充 design token 沉淀"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "ThemeMode + 主题切换涉及 Riverpod / WidgetsBinding,确认遵循状态管理规范"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "通用质量约束(命名/错误处理/不许硬编码色值)"}
+{"file": ".trellis/spec/frontend/desktop-capture-pipeline.md", "reason": "确保视觉重做不破坏 mini 卡片管线契约"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "新增 lib/theme/ 目录需符合分层结构"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务横扫主窗口/mini 窗/设置页/对话框等所有 UI 层,需要跨层思考"}
+{"file": ".trellis/tasks/archive/2026-06/06-20-clipboard-system-notification/prd.md", "reason": "前置任务: 理解 mini 卡片视觉约束(380x200,叠 3 张,渐进填充),避免重做时改坏"}
+{"file": ".trellis/tasks/archive/2026-06/06-20-tray-lifecycle/prd.md", "reason": "前置任务: 理解托盘/退出 Roosty/隐藏到托盘交互,确保视觉重做不破坏这些行为"}

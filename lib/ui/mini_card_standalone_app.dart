@@ -7,6 +7,8 @@ import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../core/mini_card.dart';
+import '../theme/dark_theme.dart';
+import '../theme/light_theme.dart';
 import 'mini_card_window.dart';
 import 'windows_mini_window_style.dart';
 
@@ -54,9 +56,9 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Roosty',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F6F63)),
-      ),
+      theme: lightRoostyTheme,
+      darkTheme: darkRoostyTheme,
+      themeMode: ThemeMode.system,
       home: Scaffold(
         backgroundColor: Colors.transparent,
         body: AnimatedSlide(

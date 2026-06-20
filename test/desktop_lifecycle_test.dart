@@ -107,6 +107,8 @@ void main() {
       find.byType(ListView),
       const Offset(0, -300),
     );
+    await tester.ensureVisible(find.text('退出 Roosty'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('退出 Roosty'));
     await tester.pumpAndSettle();
 
@@ -117,6 +119,8 @@ void main() {
     expect(channels.windowMethodCount('destroy'), 0);
     expect(channels.trayMethodCount('destroy'), 0);
 
+    await tester.ensureVisible(find.text('退出 Roosty'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('退出 Roosty'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, '退出'));

@@ -16,6 +16,7 @@ This directory contains guidelines for frontend development. Fill in each file w
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Active |
 | [Capture Pipeline](./desktop-capture-pipeline.md) | Clipboard/share-to-Obsidian capture contracts | Active |
+| [Design Tokens](./design-tokens.md) | Warm handcrafted theme tokens, typography, and visual surface contracts | Active |
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
 | [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | To fill |
 | [State Management](./state-management.md) | Local state, global state, server state | Active |
