@@ -274,3 +274,36 @@ Fixed tray mouse handling, resident close/minimize behavior, session-only clipbo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: UI visual redesign + token visual-validation lessons
+
+**Date**: 2026-06-20
+**Task**: UI visual redesign + token visual-validation lessons
+**Branch**: `master`
+
+### Summary
+
+把 Roosty 从 Material 默认模板升级到温暖手作调性 (米白底 + 暑褐主色 + 思源宋体/Lora 衬线字 + 双主题)。Codex 完成 T1-T9 + T11 (token 系统、字体子集化 5.4MB、双主题、widget 测试 49 项,WCAG AA 全过)。主 session 实跑发现 2 处视觉 bug 直接修: ① onPrimary 从深棕改米白 (按钮文字从融底色变清晰) ② IconButton iconColor 从 primary 改 textPrimary (图标默认就清晰,不用 hover 才看见)。trellis-update-spec 把 3 类 design token 反例追加到 frontend/design-tokens.md (onPrimary 不能继承文本色系统、IconButton 不用品牌色做默认、整套主题应单色温)。flutter analyze + 49 测试全过,build windows 成功。APK 构建因 C 盘空间不足挂在 mergeDebugNativeLibs 阶段 (Android JNI jar 解压报磁盘不足),后续单独处理。UX overhaul 父任务 3 子任务全完成。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `de5cc40` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
