@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查代码质量和测试是否真有覆盖(不许 mock 跳过)"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "检查 windowManager / TrayListener / Riverpod 联动是否规范"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "DesktopTrayBridge 修改是否仍符合组件规范"}

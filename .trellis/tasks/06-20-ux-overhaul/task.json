@@ -20,7 +20,8 @@
   "subtasks": [],
   "children": [
     "06-20-clipboard-system-notification",
-    "06-20-ui-visual-redesign"
+    "06-20-ui-visual-redesign",
+    "06-20-tray-lifecycle"
   ],
   "parent": null,
   "relatedFiles": [],

@@ -11,6 +11,7 @@ import '../core/core_providers.dart';
 import '../core/item.dart';
 import '../sinks/obsidian_sink.dart';
 import '../sources/clipboard_source.dart';
+import 'desktop_lifecycle.dart';
 import 'desktop_mini_card_window_host.dart';
 import 'desktop_tray_bridge.dart';
 import 'mini_card_window.dart';
@@ -48,6 +49,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final vaultCandidates = ref.watch(vaultCandidatesProvider);
     final captureState = ref.watch(captureControllerProvider);
     final miniCardState = ref.watch(miniCardControllerProvider);
+    final effectiveClipboardWatching = ref.watch(
+      effectiveClipboardWatchingProvider,
+    );
     final isAndroid = ref.watch(isAndroidProvider);
     final isWindows = ref.watch(isWindowsProvider);
 
@@ -65,6 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       (config.vaultPath?.trim().isEmpty ?? true));
               return _HomeContent(
                 config: config,
+                effectiveClipboardWatching: effectiveClipboardWatching,
                 isAndroid: isAndroid,
                 showVaultDiscovery: showVaultDiscovery,
                 vaultCandidates: vaultCandidates,
@@ -82,10 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onRemoveBlockedDomain: _removeBlockedDomain,
                 onToggleClipboard: (enabled) {
                   ref
+                      .read(clipboardWatchingSessionOverrideProvider.notifier)
+                      .clear();
+                  ref
                       .read(appConfigControllerProvider.notifier)
                       .updateClipboardWatchingEnabled(enabled);
                 },
                 onManualArchive: _archiveManualUrl,
+                onExitApp: () => confirmExitRoosty(context),
                 onConfirmPending: () {
                   ref.read(captureControllerProvider.notifier).archivePending();
                 },
@@ -123,6 +132,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         const DesktopMiniCardWindowHost(),
+        const DesktopWindowLifecycleBridge(),
         const DesktopTrayBridge(),
       ],
     );
@@ -296,6 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.config,
+    required this.effectiveClipboardWatching,
     required this.isAndroid,
     required this.showVaultDiscovery,
     required this.vaultCandidates,
@@ -313,11 +324,13 @@ class _HomeContent extends StatelessWidget {
     required this.onRemoveBlockedDomain,
     required this.onToggleClipboard,
     required this.onManualArchive,
+    required this.onExitApp,
     required this.onConfirmPending,
     required this.onDismissPending,
   });
 
   final AppConfig config;
+  final bool effectiveClipboardWatching;
   final bool isAndroid;
   final bool showVaultDiscovery;
   final AsyncValue<List<VaultCandidate>> vaultCandidates;
@@ -335,6 +348,7 @@ class _HomeContent extends StatelessWidget {
   final ValueChanged<String> onRemoveBlockedDomain;
   final ValueChanged<bool> onToggleClipboard;
   final VoidCallback onManualArchive;
+  final VoidCallback onExitApp;
   final VoidCallback onConfirmPending;
   final VoidCallback onDismissPending;
 
@@ -446,7 +460,7 @@ class _HomeContent extends StatelessWidget {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('剪贴板监听'),
-                  value: config.clipboardWatchingEnabled,
+                  value: effectiveClipboardWatching,
                   onChanged: isAndroid ? null : onToggleClipboard,
                   secondary: const Icon(Icons.content_paste_search),
                 ),
@@ -474,6 +488,21 @@ class _HomeContent extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: '应用',
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: onExitApp,
+                icon: const Icon(Icons.power_settings_new),
+                label: const Text('退出 Roosty'),
+              ),
             ),
           ),
           const SizedBox(height: 20),

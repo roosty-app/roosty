@@ -254,6 +254,153 @@ await _archiveWith(() async {
 
 ---
 
+## Scenario: Desktop Tray And Window Lifecycle
+
+### 1. Scope / Trigger
+
+- Trigger: desktop behavior that keeps Roosty resident in the system tray while
+  preserving clipboard capture and mini-card flows.
+- Applies to: `lib/main.dart`, `lib/ui/desktop_tray_bridge.dart`,
+  `lib/ui/desktop_lifecycle.dart`, `lib/ui/home_screen.dart`,
+  `lib/core/core_providers.dart`, and desktop widget/integration tests.
+- Does not apply to: Android share capture. Android must keep the mobile share
+  lifecycle and must not enable clipboard watching.
+
+### 2. Signatures
+
+- `DesktopTrayBridge` registers a `TrayListener` and owns tray icon/menu state.
+- `DesktopWindowLifecycleBridge` registers a `WindowListener` and owns host
+  window close/minimize behavior.
+- `exitRoosty(): Future<void>` is the shared explicit-exit path.
+- `confirmExitRoosty(BuildContext context): Future<void>` asks once before
+  calling `exitRoosty`.
+- `clipboardWatchingSessionOverrideProvider: NotifierProvider<..., bool?>`
+  stores a session-only tray pause/resume override.
+- `effectiveClipboardWatchingProvider: Provider<bool>` combines persisted
+  config and the session override.
+
+### 3. Contracts
+
+- Main desktop startup must call `windowManager.ensureInitialized()` before
+  using window APIs, and must call `windowManager.setPreventClose(true)` for
+  host windows that should hide instead of exiting.
+- Mini-card child windows are not host windows. They may close normally and
+  must not register the host lifecycle bridge.
+- Host `onWindowClose` must call `windowManager.hide()` and must not call
+  `windowManager.destroy()`.
+- Host `onWindowMinimize` must call `windowManager.hide()` and must not leave a
+  taskbar-minimized window.
+- Actual process exit is allowed only through explicit exit UI:
+  tray menu "退出" or settings "退出 Roosty" after confirmation.
+- Tray menu "暂停/恢复剪贴板监听" is session-only. It updates
+  `clipboardWatchingSessionOverrideProvider`; it must not write
+  `AppConfig.clipboardWatchingEnabled` or shared_preferences.
+- UI that displays clipboard listening state must read
+  `effectiveClipboardWatchingProvider`, not only persisted config, so tray
+  menu changes are reflected immediately in the settings switch.
+- Windows `tray_manager 0.5.3` dispatches `WM_LBUTTONUP` as Dart
+  `onTrayIconMouseDown` and `WM_RBUTTONUP` as `onTrayIconRightMouseDown`.
+  Roosty must handle those callbacks; `MouseUp` handlers may remain as
+  compatibility fallbacks.
+- First hide-to-tray action may set the tray tooltip to explain where Roosty
+  went, then restore the default tooltip after a short timeout.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| User left-clicks tray icon on Windows | Show and focus the main window |
+| User double-clicks tray icon | Show and focus the main window |
+| User right-clicks tray icon | Open the tray context menu |
+| User clicks tray menu pause/resume | Effective clipboard state changes; persisted config is unchanged |
+| Settings switch is visible after tray pause | Switch shows the effective paused state |
+| User clicks X on host window | Main window hides; process and clipboard watcher remain alive |
+| User minimizes host window | Main window hides to tray; process remains alive |
+| User clicks settings exit | Show confirmation before destroying tray/window |
+| User clicks tray exit | Destroy tray icon and window |
+| Desktop plugins are missing in widget tests | Catch `MissingPluginException` and keep tests deterministic |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Roosty is hidden from the taskbar, remains in the tray, and still shows
+  mini cards when clipboard watching is effectively enabled.
+- Base: tray pause stops clipboard watching only for the current process, and a
+  restart returns to the persisted user preference.
+- Bad: the tray menu updates a hidden override while the settings UI still reads
+  stale persisted config, making the switch disagree with the actual watcher.
+
+### 6. Tests Required
+
+- Widget integration test must pump the real app tree with `isWindowsProvider`
+  overridden and mock the `tray_manager` / `window_manager` platform channels.
+- Test tray icon events by sending plugin method calls such as
+  `onTrayIconMouseDown`, `onTrayIconRightMouseDown`, and
+  `onTrayMenuItemClick`; assert `window_manager.show/focus` and
+  `tray_manager.popUpContextMenu` calls.
+- Test tray pause/resume by invoking the menu item id returned through
+  `setContextMenu`; assert the settings switch changes while
+  `clipboardWatchingEnabled` in shared_preferences does not.
+- Test `onEvent(close)` and `onEvent(minimize)`; assert `hide` is called and
+  `destroy` is not.
+- Windows Release/manual verification is required before finishing lifecycle
+  tasks: click the real tray icon/menu, close/minimize the real window, and
+  verify clipboard capture still works after hiding.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```dart
+@override
+void onTrayIconMouseUp() => _showMainWindow();
+
+@override
+void onTrayIconRightMouseUp() => trayManager.popUpContextMenu();
+// On Windows tray_manager 0.5.3 sends mouse-up native events as MouseDown.
+```
+
+#### Correct
+
+```dart
+@override
+void onTrayIconMouseDown() => _showMainWindow();
+
+@override
+void onTrayIconRightMouseDown() => trayManager.popUpContextMenu();
+```
+
+#### Wrong
+
+```dart
+SwitchListTile(value: config.clipboardWatchingEnabled);
+// Ignores session-only tray pause/resume state.
+```
+
+#### Correct
+
+```dart
+final enabled = ref.watch(effectiveClipboardWatchingProvider);
+SwitchListTile(value: enabled);
+```
+
+#### Wrong
+
+```dart
+void onWindowClose() {
+  windowManager.destroy();
+}
+```
+
+#### Correct
+
+```dart
+void onWindowClose() {
+  windowManager.hide();
+}
+```
+
+---
+
 ## Scenario: Android System Share Capture
 
 ### 1. Scope / Trigger

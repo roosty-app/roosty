@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../config/config_providers.dart';
 import '../core/core_providers.dart';
+import 'desktop_lifecycle.dart';
 
 class DesktopTrayBridge extends ConsumerStatefulWidget {
   const DesktopTrayBridge({super.key});
@@ -20,21 +19,27 @@ class DesktopTrayBridge extends ConsumerStatefulWidget {
 class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
     with TrayListener {
   bool? _lastClipboardEnabled;
+  bool _listening = false;
   Timer? _feedbackTimer;
 
   @override
   void initState() {
     super.initState();
-    if (Platform.isWindows) {
+    if (ref.read(isWindowsProvider)) {
+      _listening = true;
       trayManager.addListener(this);
-      unawaited(_initTray());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_initTray());
+        }
+      });
     }
   }
 
   @override
   void dispose() {
     _feedbackTimer?.cancel();
-    if (Platform.isWindows) {
+    if (_listening) {
       trayManager.removeListener(this);
     }
     super.dispose();
@@ -42,16 +47,11 @@ class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isWindows) {
+    if (!ref.watch(isWindowsProvider)) {
       return const SizedBox.shrink();
     }
 
-    final clipboardEnabled =
-        ref
-            .watch(appConfigControllerProvider)
-            .value
-            ?.clipboardWatchingEnabled ??
-        false;
+    final clipboardEnabled = ref.watch(effectiveClipboardWatchingProvider);
     if (_lastClipboardEnabled != clipboardEnabled) {
       _lastClipboardEnabled = clipboardEnabled;
       unawaited(_setMenu(clipboardEnabled));
@@ -70,8 +70,18 @@ class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
   }
 
   @override
+  void onTrayIconMouseDown() {
+    unawaited(_showMainWindow());
+  }
+
+  @override
   void onTrayIconMouseUp() {
     unawaited(_showMainWindow());
+  }
+
+  @override
+  void onTrayIconRightMouseDown() {
+    unawaited(trayManager.popUpContextMenu());
   }
 
   @override
@@ -83,10 +93,7 @@ class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
     try {
       await trayManager.setIcon('windows/runner/resources/app_icon.ico');
       await trayManager.setToolTip('Roosty');
-      await _setMenu(
-        ref.read(appConfigControllerProvider).value?.clipboardWatchingEnabled ??
-            false,
-      );
+      await _setMenu(ref.read(effectiveClipboardWatchingProvider));
     } on MissingPluginException {
       // Widget tests run without desktop plugin registration.
     }
@@ -106,14 +113,14 @@ class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
               key: 'toggle_clipboard',
               label: clipboardEnabled ? '暂停剪贴板监听' : '恢复剪贴板监听',
               onClick: (_) => ref
-                  .read(appConfigControllerProvider.notifier)
-                  .updateClipboardWatchingEnabled(!clipboardEnabled),
+                  .read(clipboardWatchingSessionOverrideProvider.notifier)
+                  .setEnabledForSession(!clipboardEnabled),
             ),
             MenuItem.separator(),
             MenuItem(
               key: 'exit',
               label: '退出',
-              onClick: (_) => unawaited(_exitApp()),
+              onClick: (_) => unawaited(exitRoosty()),
             ),
           ],
         ),
@@ -127,15 +134,6 @@ class _DesktopTrayBridgeState extends ConsumerState<DesktopTrayBridge>
     try {
       await windowManager.show();
       await windowManager.focus();
-    } on MissingPluginException {
-      // Ignore in tests.
-    }
-  }
-
-  Future<void> _exitApp() async {
-    try {
-      await trayManager.destroy();
-      await windowManager.destroy();
     } on MissingPluginException {
       // Ignore in tests.
     }

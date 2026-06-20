@@ -14,8 +14,11 @@ import 'ui/mini_card_standalone_app.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isWindows) {
+  final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  if (isDesktop) {
     await windowManager.ensureInitialized();
+  }
+  if (Platform.isWindows) {
     final windowController = await WindowController.fromCurrentEngine();
     final windowArguments = _decodeWindowArguments(windowController.arguments);
     if (windowArguments?['type'] == miniCardWindowType) {
@@ -27,6 +30,9 @@ Future<void> main(List<String> args) async {
       );
       return;
     }
+  }
+  if (isDesktop) {
+    await windowManager.setPreventClose(true);
   }
   final preferences = await SharedPreferences.getInstance();
 

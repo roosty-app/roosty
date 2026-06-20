@@ -104,6 +104,31 @@ final historyProvider = Provider<List<Item>>((ref) {
 final miniCardControllerProvider =
     NotifierProvider<MiniCardController, MiniCardState>(MiniCardController.new);
 
+final clipboardWatchingSessionOverrideProvider =
+    NotifierProvider<ClipboardWatchingSessionOverrideController, bool?>(
+      ClipboardWatchingSessionOverrideController.new,
+    );
+
+final effectiveClipboardWatchingProvider = Provider<bool>((ref) {
+  final configured =
+      ref.watch(appConfigControllerProvider).value?.clipboardWatchingEnabled ??
+      false;
+  return ref.watch(clipboardWatchingSessionOverrideProvider) ?? configured;
+});
+
+class ClipboardWatchingSessionOverrideController extends Notifier<bool?> {
+  @override
+  bool? build() => null;
+
+  void setEnabledForSession(bool enabled) {
+    state = enabled;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
+
 class CaptureState {
   const CaptureState({
     this.pendingItem,
@@ -144,8 +169,8 @@ class CaptureController extends Notifier<CaptureState> {
       _clipboardSubscription?.cancel();
       _shareIntentSubscription?.cancel();
     });
-    ref.listen(appConfigControllerProvider, (_, next) {
-      _syncClipboardWatching(next.value?.clipboardWatchingEnabled ?? false);
+    ref.listen(effectiveClipboardWatchingProvider, (_, enabled) {
+      _syncClipboardWatching(enabled);
     }, fireImmediately: true);
     _syncShareIntentWatching(ref.watch(isAndroidProvider));
     return const CaptureState();

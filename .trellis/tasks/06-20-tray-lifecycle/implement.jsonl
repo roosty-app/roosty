@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec 总目录"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "改动涉及 windowManager 生命周期 + Riverpod provider 状态联动"}
+{"file": ".trellis/spec/frontend/desktop-capture-pipeline.md", "reason": "确保托盘暂停监听切换不破坏管线契约"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "DesktopTrayBridge 是已存在的组件,修复时遵循组件规范"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "通用质量约束,特别是错误处理 + 测试不许 mock 跳过"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务跨 main.dart / WindowListener / TrayListener / Riverpod 多层"}
+{"file": ".trellis/tasks/archive/2026-06/06-20-clipboard-system-notification/prd.md", "reason": "前置任务 prd,理解已实现的 tray 代码 + mini 卡片架构,避免改坏"}
