@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-06-22
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~378 | Active |
+| `journal-1.md` | ~412 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-06-22 | M4-α: in-repo open-source prep (config / build script / readme) | `679f911`, `fcb8984` | `master` |
 | 11 | 2026-06-22 | brand visual reframe — nest narrative UI | `c9d2187`, `fe63faa`, `0542359`, `5479a87` | `master` |
 | 10 | 2026-06-22 | drop mobile scope (deferred) + plan brand visual reframe | `30ad58f` | `master` |
 | 9 | 2026-06-20 | UI visual redesign + token visual-validation lessons | `de5cc40` | `master` |

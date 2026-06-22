@@ -376,3 +376,37 @@ Fixed tray mouse handling, resident close/minimize behavior, session-only clipbo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: M4-α: in-repo open-source prep (config / build script / readme)
+
+**Date**: 2026-06-22
+**Task**: M4-α: in-repo open-source prep (config / build script / readme)
+**Branch**: `master`
+
+### Summary
+
+M4-α 完成（任务保留 in_progress 等 M4-β）。新增 config.example.json（AppConfig/LlmConfig 字段参考，deepseek-chat 不动）、scripts/build-windows.ps1（doctor→clean→pub get→build→zip 一条龙）、docs/screenshots/ 占位、README 增'截图' + '从源码构建'两节、.gitignore 加 dist/。α3 dry-run 抓到两个脚本 bug 并修：flutter clean 会改 cwd 导致后续 pubspec.yaml 找不到（改用 $PSScriptRoot 锚定仓库根）；PowerShell $ErrorActionPreference='Stop' 不抓原生命令退出码（加 Invoke-Native 包装显式检查 $LASTEXITCODE）。最终验证生成 dist/roosty-windows-v1.0.0.zip ~17MB。M4-β（域名 / GitHub org / push / 录 demo GIF）等用户操作。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `679f911` | (see git log) |
+| `fcb8984` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
