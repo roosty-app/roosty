@@ -410,3 +410,40 @@ M4-α 完成（任务保留 in_progress 等 M4-β）。新增 config.example.jso
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: M4 ship: GitHub org, repo, v1.0.0 release + secret audit spec
+
+**Date**: 2026-06-23
+**Task**: M4 ship: GitHub org, repo, v1.0.0 release + secret audit spec
+**Branch**: `main`
+
+### Summary
+
+v1 开源发布 ship 出去了。新 GitHub 组织 roosty-app（roosty-io 已被占，PRD 第二候选 roostyhq 也被占，最终 roosty-app）+ 公开仓库 roosty-app/roosty 完整 38 commits push 上去 + 9 个 Topics 装修好 + v1.0.0 Release 含 17MB Windows zip 公开可下载。M4-α 期间发现并修了 build-windows.ps1 两个 bug（cwd 漂移 + 原生 exit code 不检查）。发布前跑了一遍 secret 泄漏审计：sk-* / ghp_* / AIza* 全历史 grep 0 命中、.gitignore 完整、apiKey 只命中空字符串占位、用户测试 key 在 SharedPreferences 不在 git 工作树——无泄漏，绿灯放行。把这套审计沉淀为 .trellis/spec/guides/pre-opensource-audit-guide.md，未来任何开源前都按它跑一遍。域名 roosty.cn ¥38 已查证可注册但暂缓——先看仓库有无社区反响。M4 任务保持 in_progress，等用户做 β5（截图/GIF）+ β6（V2EX 发帖）后再 archive。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `679f911` | (see git log) |
+| `fcb8984` | (see git log) |
+| `5055b59` | (see git log) |
+| `96414b0` | (see git log) |
+| `4e57faa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
