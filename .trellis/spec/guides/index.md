@@ -23,6 +23,7 @@ These guides help you **ask the right questions before coding**.
 |-------|---------|-------------|
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+| [Pre-Opensource Audit Guide](./pre-opensource-audit-guide.md) | Scan for secret/key leakage before publishing | Before first public push, new Release, or repo public flip |
 
 ---
 
@@ -46,6 +47,15 @@ These guides help you **ask the right questions before coding**.
 - [ ] **You're creating a new utility/helper function** ← Search first!
 
 → Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
+
+### When to Audit for Secret Leakage
+
+- [ ] About to push to a public repo for the first time
+- [ ] About to publish a new Release or upload to a public channel
+- [ ] Flipping a private repo to public
+- [ ] Accepting an external contributor's first merge
+
+→ Read [Pre-Opensource Audit Guide](./pre-opensource-audit-guide.md)
 
 ---
 
