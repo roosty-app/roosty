@@ -52,6 +52,29 @@ flutter run -d windows # v1 仅交付 Windows 桌面
 
 > 未配置 LLM 时，Roosty 照常归档，只是不生成 AI 摘要。
 
+## 截图
+
+> 即将补齐：4 张光/暗主题下的主屏与 mini card 截图。
+> 截图占位文件位于 [`docs/screenshots/`](./docs/screenshots/)。
+
+| 主屏（光） | 主屏（暗） |
+|:---:|:---:|
+| ![home-light](./docs/screenshots/home-light.png) | ![home-dark](./docs/screenshots/home-dark.png) |
+| **mini card（光）** | **mini card（暗）** |
+| ![mini-card-light](./docs/screenshots/mini-card-light.png) | ![mini-card-dark](./docs/screenshots/mini-card-dark.png) |
+
+## 从源码构建
+
+```powershell
+# 一次性环境检查
+flutter doctor
+
+# 打包 Windows 可分发版本（产物在 dist/）
+.\scripts\build-windows.ps1
+```
+
+Roosty 不依赖运行时下载、不调用云服务（除非你配了 LLM key），所以打包后可直接放进任何 Windows 10/11 机器运行。
+
 ## 生成的 Markdown 格式
 
 ```markdown
