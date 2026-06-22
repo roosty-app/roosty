@@ -21,7 +21,7 @@
 - [ ] T4.1 README：定位（一句话魔法）、核心截图/GIF、30 分钟上手步骤、vault 配置说明、LLM 配置说明、roadmap（恢复 Android / iOS / 浏览器扩展 / 平台专用抓取）
 - [ ] T4.2 配置示例文件（`config.example` 之类）+ `.gitignore`（**确保任何含 key 的本地配置不进仓库**）
 - [ ] T4.3 演示 GIF / 短视频：录核心魔法「复制链接 → 几秒后 Obsidian 出现带摘要的笔记」（**桌面端录制**）
-- [ ] T4.4 LICENSE（MIT）+ 注册 `roosty.io`（或 `.dev`）+ 建 GitHub 组织（`roosty-io` / `roostyhq`，因 `roosty` 用户名已被占）
+- [ ] T4.4 LICENSE（MIT）+ 建 GitHub 组织（`roosty-io` / `roostyhq`，因 `roosty` 用户名已被占）。自定义域名 `roosty.io` 暂缓（成本考虑，不阻塞首发；先用 GitHub 仓库 URL）
 - [ ] T4.5 打包：**Windows 安装包**（`flutter build windows`）挂 GitHub Release。Android APK 暂缓，等恢复 Android 端时再补。
 
 ## 关键约束（品牌安全 — 来自 ROADMAP 风险表）

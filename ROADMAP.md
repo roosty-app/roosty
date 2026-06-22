@@ -118,7 +118,7 @@ status: unread          # unread | archived
 
 ### M4 — 开源发布（抢先达成）★项目目标
 **交付物：** 公开 GitHub 仓库 + README + 配置示例 + 一键运行说明 + 演示 GIF。
-**完成标准：** 陌生人按 README 能在 30 分钟内跑起来；仓库挂上 roosty.io（或 .dev）。仅交付 Windows 安装包；Android APK 不在 v1 范围。
+**完成标准：** 陌生人按 README 能在 30 分钟内跑起来；GitHub 仓库 URL 即可，自定义域名（roosty.io 等）可选。仅交付 Windows 安装包；Android APK 不在 v1 范围。
 
 ### M5+（roadmap，不进首发）
 - 平台专用 Fetcher（微信/小红书/X 走轻后端）
@@ -168,7 +168,7 @@ status: unread          # unread | archived
 - [ ] ✅ T4.1 README（定位/截图/30 分钟上手/配置说明）
 - [ ] ✅ T4.2 配置示例文件 + .gitignore（防泄漏 key）
 - [ ] ✅ T4.3 演示 GIF / 短视频（核心魔法）
-- [ ] ✅ T4.4 LICENSE（建议 MIT）+ 注册 roosty.io/.dev + 建 GitHub 组织
+- [ ] ✅ T4.4 LICENSE（建议 MIT）+ 建 GitHub 组织（自定义域名 roosty.io/.dev 可选，不阻塞首发）
 - [ ] ✅ T4.5 打包 Windows 安装包挂 Release（v1 不打 Android APK）
 
 ---

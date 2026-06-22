@@ -35,8 +35,8 @@
 
 ## agent 跑不了、必须留给用户的事（M4，本轮不碰）
 
-- 注册 `roosty.io` 域名、建 GitHub 组织（`roosty-io` / `roostyhq`）、`git push`、录演示 GIF。
-- 这些需要用户的账号和手动操作；M4 阶段 agent 只能把文件（README/LICENSE/配置示例/打包脚本）准备好。
+- 建 GitHub 组织（`roosty-io` / `roostyhq`）、`git push`、录演示 GIF。
+- 注册 `roosty.io` 域名暂缓（成本考虑，2026-06-23 决定）；首发用 GitHub 仓库 URL。这些需要用户的账号和手动操作；M4 阶段 agent 只能把文件（README/LICENSE/配置示例/打包脚本）准备好。
 
 ## 品牌安全红线（全程不可越界）
 
