@@ -2,22 +2,23 @@
 
 > 把散落各处的内容「叼回」你自己的知识库。
 
-Roosty 是一个 **local-first** 的跨端「内容归巢」工具：复制一条链接或从手机分享一条内容，它自动抓取正文、用 AI 生成摘要和标签，归档成带 YAML frontmatter 的 Markdown，直接写进你的 Obsidian 库。
+Roosty 是一个 **local-first** 的「内容归巢」工具：在桌面上复制一条链接，它自动抓取正文、用 AI 生成摘要和标签，归档成带 YAML frontmatter 的 Markdown，直接写进你的 Obsidian 库。
 
 - **数据完全本地**：不经过任何云服务，直接写 `.md` 到你的 vault。
 - **自带 AI 摘要**：写入前调用你自己的 LLM（OpenAI 兼容端点）生成摘要 + 自动标签。
-- **跨端一套码**：Flutter 覆盖 Windows 桌面（剪贴板捕获）+ Android（系统分享菜单）。
+- **v1 桌面优先**：当前发布版只交付 Windows 桌面端（剪贴板捕获）。Android 代码已存在于仓库中但**暂缓**未启用，等待恢复条件触发；详见 [`DECISIONS.md`](./DECISIONS.md)。
 - **对话留给 Obsidian**：Roosty 只负责产出优质 md，RAG/对话交给 Obsidian 的 Copilot 等插件。
 
 ## 核心流程
 
 ```
-复制链接 / 分享内容  →  抓取正文+元数据  →  AI 摘要+标签  →  写入 <vault>/Roosty/*.md
-   (Source)              (Fetcher)          (Processor)         (Sink)
+复制链接  →  抓取正文+元数据  →  AI 摘要+标签  →  写入 <vault>/Roosty/*.md
+ (Source)      (Fetcher)         (Processor)         (Sink)
 ```
 
-- **桌面**：后台监听剪贴板，检测到 URL 弹确认 → 归档（默认关闭，首次启动引导开启）。
-- **移动**：从微信/X/小红书/浏览器「分享到 Roosty」→ 静默归档，不打断。
+桌面后台监听剪贴板，检测到 URL 弹确认 → 归档（默认关闭，首次启动引导开启）。
+
+> v1 不交付移动端体验。仓库内的 `share_intent_source.dart` / `android_saf_vault.dart` / `android/` 工程目录均为**冻结保留**的未来恢复资产，不会随 v1 一起编译分发。
 
 ## 快速上手（约 30 分钟）
 
@@ -25,7 +26,6 @@ Roosty 是一个 **local-first** 的跨端「内容归巢」工具：复制一�
 
 - [Flutter](https://flutter.dev) stable（Dart 3.x）
 - Windows：Visual Studio（含 C++ 桌面开发负载）
-- Android：Android SDK
 
 > **Windows 用户注意**：项目路径请使用**纯 ASCII 路径**（如 `C:\roosty`）。
 > `super_native_extensions`（剪贴板底层，含 Rust 构建）在含中文/非 ASCII 字符的路径下会构建失败。
@@ -36,8 +36,7 @@ Roosty 是一个 **local-first** 的跨端「内容归巢」工具：复制一�
 flutter pub get
 flutter analyze        # 应 No issues found
 flutter test           # 应全部通过
-flutter run -d windows # 桌面
-# 或 flutter run -d <android-device>
+flutter run -d windows # v1 仅交付 Windows 桌面
 ```
 
 ### 3. 配置
@@ -83,13 +82,14 @@ status: unread
 
 | 抽象 | 职责 | 实现 |
 |------|------|------|
-| `Source` | 产生原始输入 | ClipboardSource（桌面）、ShareIntentSource（安卓） |
+| `Source` | 产生原始输入 | ClipboardSource（桌面）；ShareIntentSource ⏸ 冻结 |
 | `Fetcher` | 从 URL 抓正文+元数据 | WebFetcher（readability 式提取） |
 | `Processor` | 加工 Item | SummarizeProcessor（LLM 摘要+标签） |
-| `Sink` | 输出 | ObsidianSink（写 .md，安卓走 SAF） |
+| `Sink` | 输出 | ObsidianSink（写 .md）；AndroidSafVault ⏸ 冻结 |
 
 ## Roadmap
 
+- [ ] **恢复 Android 端**：v1 暂缓的代码已冻结在仓库中；恢复条件见 [`DECISIONS.md`](./DECISIONS.md) §移动端暂缓
 - [ ] 平台专用 Fetcher：微信防盗链 / 小红书无头渲染 / X（走轻后端）
 - [ ] iOS Share Extension + macOS
 - [ ] 浏览器扩展一键剪藏

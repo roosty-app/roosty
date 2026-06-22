@@ -71,7 +71,9 @@
 2. 国内社媒特化解析（微信防盗链/小红书无头渲染/X）——开源最薄弱环节（Roosty M5 轻后端）。
 3. Local-First + 自填 API Key（DeepSeek/通义等低成本模型）+ 强制结构化 YAML frontmatter（契合 Dataview）——与 DECISIONS 决策一致。
 
-## 两端触发模型（关键决策，已敲定）
+## 两端触发模型 ⏸ v1 暂缓 — 移动端代码冻结，恢复后此模型继续生效（2026-06-22）
+
+> 本节描述完整的双端触发模型。**v1 不交付移动端**，本节内容作为未来恢复时的设计依据保留。
 
 | 端 | 触发方式 | 行为 | 理由 |
 |----|---------|------|------|
@@ -83,3 +85,55 @@
 - Android 10+ 后台 App 无法读剪贴板（系统限制）；Android 12+ 前台读会弹系统 toast。
 - 国内 App 普遍往剪贴板塞口令/链接，监听到的大量是垃圾，信噪比极低。
 - 故移动端剪贴板只走「用户打开 App 时主动读一次 + 弹确认」，绝不后台常驻监听。
+
+---
+
+## 移动端暂缓决策记录（2026-06-22）
+
+**决策**：v1 不交付移动端体验，但**代码与平台目录冻结保留在仓库中**，未来恢复时无需从零重建。
+
+**这是暂缓决策（deferred），不是永久砍**。
+
+### 理由
+
+- v1 抢先开源目标对应的目标人群优先级：愿意用 Obsidian 做知识管理的桌面用户（中文 Windows 为主）。这部分人群的全部捕获需求在桌面端剪贴板就能满足。
+- 移动端要做的事远不止 share intent：SAF 授权、APK 签名分发、应用商店审核、移动端剪贴板合规弹窗、不同 OEM ROM 兼容…对 v1 抢先目标是**重投入低杠杆**。
+- 现存 APK 构建 C 盘空间问题（Android Gradle 忽略 E:\Temp 重定向，`mergeDebugNativeLibs` 阶段触顶）暂缓处理，等未来恢复时再统一解。
+
+### 影响范围
+
+冻结的代码资产（**不删除，加冻结注释**）：
+
+- `lib/sources/share_intent_source.dart`
+- `lib/sinks/android_saf_vault.dart`
+- `lib/config/app_config.dart` 中 `androidVaultUri` 字段
+- `lib/config/config_providers.dart` 中 `isAndroidProvider`
+- `lib/ui/home_screen.dart` 中 `isAndroid` 分支
+- `android/` 目录（Flutter 工程结构需要）
+- `pubspec.yaml` 中 `receive_sharing_intent` 依赖（视编译影响评估）
+
+桌面端共用 / 不受影响：剪贴板管线、`ClipboardSource`、`WebFetcher`、`SummarizeProcessor`、`ObsidianSink`（桌面分支）。
+
+### 恢复条件（触发器）
+
+任何一项满足时，重新评估是否启动移动端恢复：
+
+1. 桌面版 v1 在公开渠道（GitHub Stars / 国内社群引用）达到一个可见的关注度，且**用户主动反馈缺少移动端**。
+2. 社区贡献者主动接手 Android 端的接管与维护。
+3. 主开发者完成 v1 后有空余时间，且当时市场仍无强竞品占位移动端。
+
+### 恢复步骤要点（未来参考）
+
+1. 先解 APK 构建 C 盘空间问题（Android Gradle 不读自定义 temp 环境变量）。
+2. 移除所有 `// v1: deferred` 冻结注释。
+3. 跑 R3 节的 `06-14-m4-opensource-release` PRD 时回填 Android APK 交付物。
+4. 复活 ROADMAP §M3 的 ⏸ 标记，按原 T3.x 顺序施工。
+
+### 不可逆判定
+
+未来若决策"永久放弃移动端"，应：
+- 删除上述冻结代码资产；
+- 将本节标题改为"移动端废弃决策记录"；
+- 移除 ROADMAP §M3 整段而非 ⏸ 标记。
+
+**目前明确不是这种情况**。

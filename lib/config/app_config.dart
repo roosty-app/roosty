@@ -33,6 +33,8 @@ class AppConfig {
   });
 
   final String? vaultPath;
+  // v1: deferred — androidVaultUri is for mobile/SAF; kept for future restoration.
+  // See DECISIONS.md §移动端暂缓决策记录.
   final String? androidVaultUri;
   final bool clipboardWatchingEnabled;
   final List<String> domainBlocklist;

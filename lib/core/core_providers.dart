@@ -18,6 +18,8 @@ import 'pipeline.dart';
 import 'source_platform.dart';
 import 'url_rules.dart';
 
+// v1: deferred — isAndroidProvider always returns false on desktop builds.
+// Mobile branch is preserved for future restoration; see DECISIONS.md §移动端暂缓决策记录.
 final isAndroidProvider = Provider<bool>((ref) {
   return Platform.isAndroid;
 });
@@ -34,10 +36,12 @@ final clipboardSourceProvider = Provider<ClipboardSource>((ref) {
   return ClipboardSource();
 });
 
+// v1: deferred — share-intent is a mobile-only entrypoint, never instantiated on desktop.
 final shareIntentSourceProvider = Provider<ShareIntentSource>((ref) {
   return ShareIntentSource();
 });
 
+// v1: deferred — Android SAF vault provider; desktop ObsidianSink never calls this.
 final androidSafVaultProvider = Provider<AndroidSafVault>((ref) {
   return const AndroidSafVault();
 });

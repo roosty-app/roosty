@@ -1,3 +1,6 @@
+// v1: deferred — mobile/Android features are frozen but preserved.
+// See DECISIONS.md §移动端暂缓决策记录 for restoration conditions.
+
 import 'dart:async';
 
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
