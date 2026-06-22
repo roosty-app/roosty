@@ -26,16 +26,51 @@ class MiniCardDeck extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final card in cards) ...[
-          MiniCardWindow(
-            card: card,
-            isArchiving: isArchiving,
-            onArchive: () => onArchive(card.id),
-            onIgnoreOnce: () => onIgnoreOnce(card.id),
-            onBlockDomain: () => onBlockDomain(card.id),
+          _MiniCardEntryAnimator(
+            key: ValueKey('mini-card-entry-${card.id}'),
+            child: MiniCardWindow(
+              card: card,
+              isArchiving: isArchiving,
+              onArchive: () => onArchive(card.id),
+              onIgnoreOnce: () => onIgnoreOnce(card.id),
+              onBlockDomain: () => onBlockDomain(card.id),
+            ),
           ),
           if (card != cards.last) SizedBox(height: tokens.space2),
         ],
       ],
+    );
+  }
+}
+
+/// Plays a one-shot slide-in + fade-in when a card joins the deck.
+///
+/// Resting position is `Offset.zero`; entry starts from 24px below-right
+/// to convey "鸟落枝" arrival per design.md §4. The animation runs once
+/// per mount because [TweenAnimationBuilder] only re-animates when the
+/// tween end value changes.
+class _MiniCardEntryAnimator extends StatelessWidget {
+  const _MiniCardEntryAnimator({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, animatedChild) {
+        final progress = (1 - t) * 24;
+        return Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(progress, progress),
+            child: animatedChild,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -61,7 +96,11 @@ class MiniCardWindow extends StatelessWidget {
     final tokens = context.roostyTokens;
     final textTheme = Theme.of(context).textTheme;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 220),
+      reverseDuration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: _buildSwitcherTransition,
       child: SizedBox(
         key: ValueKey(card.id),
         width: 380,
@@ -82,15 +121,11 @@ class MiniCardWindow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        _sourceIcon(card.item.source),
-                        size: 18,
-                        color: tokens.primary,
-                      ),
+                      _SourceIconBadge(source: card.item.source),
                       SizedBox(width: tokens.space2),
                       Expanded(
                         child: Text(
-                          'Roosty 看到一条链接',
+                          '一只链接落到了枝头',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.labelLarge,
@@ -130,8 +165,8 @@ class MiniCardWindow extends StatelessWidget {
                             ),
                           ),
                           onPressed: isArchiving ? null : onArchive,
-                          icon: const Icon(Icons.archive, size: 16),
-                          label: const Text('归巢'),
+                          icon: const Icon(Icons.arrow_outward, size: 16),
+                          label: const Text('飞回巢'),
                         ),
                       ),
                       SizedBox(width: tokens.space1),
@@ -171,7 +206,71 @@ class MiniCardWindow extends StatelessWidget {
     );
   }
 
-  IconData _sourceIcon(String source) {
+  /// Direction-aware transition for the inner [AnimatedSwitcher].
+  ///
+  /// Entry (status forward / completed): handled by the outer
+  /// [_MiniCardEntryAnimator]; this builder returns the child unchanged so
+  /// the two layers do not stack into a double animation on first mount.
+  ///
+  /// Exit (status reverse / dismissed): slide ~24px toward upper-left,
+  /// fade out, and shrink to ~0.96 to express "归巢飞走" per design.md §4.
+  Widget _buildSwitcherTransition(Widget child, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, animatedChild) {
+        final status = animation.status;
+        final isExit =
+            status == AnimationStatus.reverse ||
+            status == AnimationStatus.dismissed;
+        if (!isExit) {
+          return animatedChild!;
+        }
+        final t = animation.value.clamp(0.0, 1.0);
+        final translate = -24.0 * (1 - t);
+        final scale = 0.96 + 0.04 * t;
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(translate, translate),
+            child: Transform.scale(
+              scale: scale,
+              child: animatedChild,
+            ),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+/// Round badge that frames the source icon with a [primarySubtle] disc,
+/// giving the title row a "鸟落枝" anchor per design.md §3.4.
+class _SourceIconBadge extends StatelessWidget {
+  const _SourceIconBadge({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.roostyTokens;
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: tokens.primarySubtle,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        _sourceIconFor(source),
+        size: 18,
+        color: tokens.primary,
+      ),
+    );
+  }
+
+  static IconData _sourceIconFor(String source) {
     return switch (source) {
       'wechat' => Icons.chat_bubble_outline,
       'x' => Icons.alternate_email,
