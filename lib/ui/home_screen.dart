@@ -17,6 +17,7 @@ import 'desktop_mini_card_window_host.dart';
 import 'desktop_tray_bridge.dart';
 import 'mini_card_window.dart';
 import 'nest/nest_header.dart';
+import 'nest/nest_stage.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -57,12 +58,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isAndroid = ref.watch(isAndroidProvider);
     final isWindows = ref.watch(isWindowsProvider);
 
+    final tokens = context.roostyTokens;
+
     return Stack(
       children: [
         Scaffold(
           body: Column(
             children: [
               const NestHeader(),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: tokens.space6,
+                  vertical: tokens.space6,
+                ),
+                child: NestStage(history: captureState.history),
+              ),
               Expanded(
                 child: appConfig.when(
                   data: (config) {
