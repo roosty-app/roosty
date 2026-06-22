@@ -5,26 +5,36 @@
 #   pwsh -File scripts/build-windows.ps1
 # Requires: Flutter (stable, Dart 3.x) and Visual Studio with the
 # "Desktop development with C++" workload installed.
+# Tip: close any running roosty.exe (Roosty desktop, mini card) before running.
 $ErrorActionPreference = 'Stop'
 
+# Anchor cwd to the repo root so the script is location-agnostic.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
+
+function Invoke-Native($label, [scriptblock]$cmd) {
+  & $cmd
+  if ($LASTEXITCODE -ne 0) { throw "$label failed with exit code $LASTEXITCODE" }
+}
+
 Write-Host "[1/4] flutter doctor"
-flutter doctor
+Invoke-Native 'flutter doctor' { flutter doctor }
 
 Write-Host "[2/4] clean + pub get"
-flutter clean
-flutter pub get
+Invoke-Native 'flutter clean' { flutter clean }
+Invoke-Native 'flutter pub get' { flutter pub get }
 
 Write-Host "[3/4] build windows release"
-flutter build windows --release
+Invoke-Native 'flutter build windows --release' { flutter build windows --release }
 
-$pubspec = Get-Content pubspec.yaml -Raw
+$pubspec = Get-Content (Join-Path $repoRoot 'pubspec.yaml') -Raw
 if ($pubspec -match '(?m)^version:\s*([\d\.]+)') { $version = $Matches[1] }
 else { throw "Could not find version in pubspec.yaml" }
 
-$source = Join-Path (Get-Location) 'build\windows\x64\runner\Release'
+$source = Join-Path $repoRoot 'build\windows\x64\runner\Release'
 if (-not (Test-Path $source)) { throw "Build output not found: $source" }
 
-$distDir = Join-Path (Get-Location) 'dist'
+$distDir = Join-Path $repoRoot 'dist'
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $zip = Join-Path $distDir "roosty-windows-v$version.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
