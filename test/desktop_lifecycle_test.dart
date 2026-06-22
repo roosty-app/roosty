@@ -8,6 +8,8 @@ import 'package:roosty/core/core_providers.dart';
 import 'package:roosty/core/item.dart';
 import 'package:roosty/main.dart';
 import 'package:roosty/sources/clipboard_source.dart';
+import 'package:roosty/ui/nest/nest_footer.dart';
+import 'package:roosty/ui/nest/nest_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -22,11 +24,7 @@ void main() {
     addTearDown(channels.dispose);
 
     await _pumpApp(tester, preferences);
-    await tester.dragUntilVisible(
-      find.text('剪贴板监听'),
-      find.byType(ListView),
-      const Offset(0, -300),
-    );
+    await _ensureSettingsExpanded(tester);
     await tester.pumpAndSettle();
     expect(_clipboardSwitch(tester).value, isTrue);
 
@@ -102,14 +100,9 @@ void main() {
 
     await _pumpApp(tester, preferences);
 
-    await tester.dragUntilVisible(
-      find.text('退出 Roosty'),
-      find.byType(ListView),
-      const Offset(0, -300),
-    );
-    await tester.ensureVisible(find.text('退出 Roosty'));
+    await tester.ensureVisible(find.byKey(NestFooter.exitButtonKey));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出 Roosty'));
+    await tester.tap(find.byKey(NestFooter.exitButtonKey));
     await tester.pumpAndSettle();
 
     expect(find.text('退出 Roosty？'), findsOneWidget);
@@ -119,9 +112,9 @@ void main() {
     expect(channels.windowMethodCount('destroy'), 0);
     expect(channels.trayMethodCount('destroy'), 0);
 
-    await tester.ensureVisible(find.text('退出 Roosty'));
+    await tester.ensureVisible(find.byKey(NestFooter.exitButtonKey));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出 Roosty'));
+    await tester.tap(find.byKey(NestFooter.exitButtonKey));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, '退出'));
     await tester.pumpAndSettle();
@@ -156,6 +149,18 @@ SwitchListTile _clipboardSwitch(WidgetTester tester) {
   return tester.widget<SwitchListTile>(
     find.widgetWithText(SwitchListTile, '剪贴板监听'),
   );
+}
+
+/// Expand `NestSettings` if it is currently collapsed. The settings panel is
+/// collapsed by default when a vault is configured; tests that need to reach
+/// the clipboard switch / blocked-domain list must open it first.
+Future<void> _ensureSettingsExpanded(WidgetTester tester) async {
+  final switchFinder = find.widgetWithText(SwitchListTile, '剪贴板监听');
+  if (switchFinder.evaluate().isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(NestSettings.headerKey));
+  await tester.pumpAndSettle();
 }
 
 class _EmptyClipboardSource extends ClipboardSource {

@@ -16,7 +16,9 @@ import 'desktop_lifecycle.dart';
 import 'desktop_mini_card_window_host.dart';
 import 'desktop_tray_bridge.dart';
 import 'mini_card_window.dart';
+import 'nest/nest_footer.dart';
 import 'nest/nest_header.dart';
+import 'nest/nest_settings.dart';
 import 'nest/nest_stage.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -66,13 +68,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           body: Column(
             children: [
               const NestHeader(),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: tokens.space6,
-                  vertical: tokens.space6,
-                ),
-                child: NestStage(history: captureState.history),
-              ),
               Expanded(
                 child: appConfig.when(
                   data: (config) {
@@ -82,10 +77,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         !isAndroid &&
                         (_forceShowVaultDiscovery ||
                             (config.vaultPath?.trim().isEmpty ?? true));
-                    return _HomeContent(
+                    return _NestBody(
                       config: config,
                       effectiveClipboardWatching: effectiveClipboardWatching,
-                      isAndroid: isAndroid,
                       showVaultDiscovery: showVaultDiscovery,
                       vaultCandidates: vaultCandidates,
                       captureState: captureState,
@@ -94,9 +88,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       llmApiKeyController: _llmApiKeyController,
                       llmModelController: _llmModelController,
                       manualUrlController: _manualUrlController,
-                      onChooseVault: () =>
-                          _chooseVault(config, isAndroid: isAndroid),
-                      onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
+                      tokens: tokens,
+                      onChooseVault: () => _chooseVault(config),
+                      onSaveVault: _saveVaultPath,
                       onRediscoverVaults: _rediscoverVaults,
                       onUseDiscoveredVault: _useDiscoveredVault,
                       onSaveLlm: _saveLlmConfig,
@@ -189,17 +183,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _syncedLlmConfig = llm;
   }
 
-  Future<void> _chooseVault(AppConfig config, {required bool isAndroid}) async {
-    if (isAndroid) {
-      final uri = await ref.read(androidSafVaultProvider).pickDirectory();
-      if (uri == null || !mounted) {
-        return;
-      }
-      _vaultPathController.text = uri;
-      await _saveAndroidVaultUri(uri);
-      return;
-    }
-
+  Future<void> _chooseVault(AppConfig config) async {
+    // Android branch was removed in Phase 3 (brand visual reframe): the
+    // desktop UI no longer surfaces the Android SAF flow. Mobile entry is
+    // frozen per DECISIONS.md §移动端暂缓决策记录.
     final path = await getDirectoryPath(
       initialDirectory: config.vaultPath,
       confirmButtonText: '选择',
@@ -212,11 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await _saveDesktopVaultPath(path);
   }
 
-  Future<void> _saveVaultPath({required bool isAndroid}) async {
-    if (isAndroid) {
-      await _saveAndroidVaultUri(_vaultPathController.text);
-      return;
-    }
+  Future<void> _saveVaultPath() async {
     await _saveDesktopVaultPath(_vaultPathController.text);
   }
 
@@ -242,40 +225,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref
           .read(captureControllerProvider.notifier)
           .showMessage('已连接 Obsidian vault：$trimmed');
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ref
-          .read(captureControllerProvider.notifier)
-          .showMessage('创建 Roosty 目录失败：$error');
-    }
-  }
-
-  Future<void> _saveAndroidVaultUri(String uri) async {
-    final trimmed = uri.trim();
-    if (trimmed.isEmpty) {
-      await ref
-          .read(appConfigControllerProvider.notifier)
-          .updateAndroidVaultUri('');
-      return;
-    }
-
-    try {
-      await ref
-          .read(androidSafVaultProvider)
-          .ensureDirectory(
-            treeUri: trimmed,
-            directoryName: roostyVaultDirectoryName,
-          );
-      await ref
-          .read(appConfigControllerProvider.notifier)
-          .updateAndroidVaultUri(trimmed);
-      if (!mounted) {
-        return;
-      }
-      _vaultPathController.text = trimmed;
-      ref.read(captureControllerProvider.notifier).showMessage('已授权归巢目录');
     } catch (error) {
       if (!mounted) {
         return;
@@ -329,11 +278,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _HomeContent extends StatelessWidget {
-  const _HomeContent({
+class _NestBody extends StatelessWidget {
+  const _NestBody({
     required this.config,
     required this.effectiveClipboardWatching,
-    required this.isAndroid,
     required this.showVaultDiscovery,
     required this.vaultCandidates,
     required this.captureState,
@@ -342,6 +290,7 @@ class _HomeContent extends StatelessWidget {
     required this.llmApiKeyController,
     required this.llmModelController,
     required this.manualUrlController,
+    required this.tokens,
     required this.onChooseVault,
     required this.onSaveVault,
     required this.onRediscoverVaults,
@@ -357,7 +306,6 @@ class _HomeContent extends StatelessWidget {
 
   final AppConfig config;
   final bool effectiveClipboardWatching;
-  final bool isAndroid;
   final bool showVaultDiscovery;
   final AsyncValue<List<VaultCandidate>> vaultCandidates;
   final CaptureState captureState;
@@ -366,6 +314,7 @@ class _HomeContent extends StatelessWidget {
   final TextEditingController llmApiKeyController;
   final TextEditingController llmModelController;
   final TextEditingController manualUrlController;
+  final RoostyTokens tokens;
   final VoidCallback onChooseVault;
   final VoidCallback onSaveVault;
   final VoidCallback onRediscoverVaults;
@@ -380,301 +329,73 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.roostyTokens;
+    final settingsForceExpanded =
+        showVaultDiscovery || (config.vaultPath?.trim().isEmpty ?? true);
+
     return SafeArea(
-      child: ListView(
+      top: false,
+      child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: tokens.space6,
           vertical: tokens.space6,
         ),
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: tokens.contentMaxWidth),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (showVaultDiscovery) ...[
-                    _VaultDiscoveryCard(
-                      candidates: vaultCandidates,
-                      onUseVault: onUseDiscoveredVault,
-                      onChooseOther: onChooseVault,
-                    ),
-                    SizedBox(height: tokens.space6),
-                  ],
-                  _Section(
-                    title: 'Vault',
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: vaultPathController,
-                            decoration: InputDecoration(
-                              labelText: isAndroid
-                                  ? '授权目录 URI'
-                                  : 'Obsidian vault 目录',
-                            ),
-                            onSubmitted: (_) => onSaveVault(),
-                          ),
-                        ),
-                        SizedBox(width: tokens.space2),
-                        IconButton.filledTonal(
-                          tooltip: isAndroid ? '授权目录' : '选择目录',
-                          onPressed: onChooseVault,
-                          icon: const Icon(Icons.folder_open),
-                        ),
-                        if (!isAndroid) ...[
-                          SizedBox(width: tokens.space2),
-                          IconButton.outlined(
-                            tooltip: '重新检测 Obsidian 库',
-                            onPressed: onRediscoverVaults,
-                            icon: const Icon(Icons.refresh),
-                          ),
-                        ],
-                        SizedBox(width: tokens.space2),
-                        IconButton.filled(
-                          tooltip: '保存',
-                          onPressed: onSaveVault,
-                          icon: const Icon(Icons.save),
-                        ),
-                      ],
-                    ),
-                  ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: tokens.contentMaxWidth),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                NestStage(history: captureState.history),
+                if (showVaultDiscovery) ...[
                   SizedBox(height: tokens.space6),
-                  _Section(
-                    title: 'AI 摘要',
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: llmBaseUrlController,
-                          decoration: const InputDecoration(
-                            labelText: 'Base URL',
-                            hintText: 'https://api.deepseek.com',
-                          ),
-                          onSubmitted: (_) => onSaveLlm(),
-                        ),
-                        SizedBox(height: tokens.space3),
-                        TextField(
-                          controller: llmApiKeyController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'API Key',
-                          ),
-                          onSubmitted: (_) => onSaveLlm(),
-                        ),
-                        SizedBox(height: tokens.space3),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: llmModelController,
-                                decoration: const InputDecoration(
-                                  labelText: '模型',
-                                  hintText: 'deepseek-chat',
-                                ),
-                                onSubmitted: (_) => onSaveLlm(),
-                              ),
-                            ),
-                            SizedBox(width: tokens.space2),
-                            IconButton.filled(
-                              tooltip: '保存 AI 设置',
-                              onPressed: onSaveLlm,
-                              icon: const Icon(Icons.save),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: tokens.space6),
-                  _Section(
-                    title: '捕获',
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('剪贴板监听'),
-                          value: effectiveClipboardWatching,
-                          onChanged: isAndroid ? null : onToggleClipboard,
-                          secondary: const Icon(Icons.content_paste_search),
-                        ),
-                        SizedBox(height: tokens.space3),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: manualUrlController,
-                                decoration: const InputDecoration(
-                                  labelText: '手动粘贴 URL',
-                                ),
-                                onSubmitted: (_) => onManualArchive(),
-                              ),
-                            ),
-                            SizedBox(width: tokens.space2),
-                            IconButton.filled(
-                              tooltip: '归巢',
-                              onPressed: captureState.isArchiving
-                                  ? null
-                                  : onManualArchive,
-                              icon: const Icon(Icons.archive),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: tokens.space6),
-                  _Section(
-                    title: '应用',
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: tokens.error,
-                        ),
-                        onPressed: onExitApp,
-                        icon: const Icon(Icons.power_settings_new),
-                        label: const Text('退出 Roosty'),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: tokens.space6),
-                  _Section(
-                    title: '忽略列表',
-                    child: config.domainBlocklist.isEmpty
-                        ? const _EmptyState(text: '暂无忽略域名')
-                        : Column(
-                            children: config.domainBlocklist
-                                .map(
-                                  (domain) => _BlockedDomainTile(
-                                    domain: domain,
-                                    onRemove: () =>
-                                        onRemoveBlockedDomain(domain),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                  ),
-                  if (captureState.pendingItem != null) ...[
-                    SizedBox(height: tokens.space6),
-                    _PendingCapture(
-                      item: captureState.pendingItem!,
-                      isArchiving: captureState.isArchiving,
-                      onConfirm: onConfirmPending,
-                      onDismiss: onDismissPending,
-                    ),
-                  ],
-                  if (captureState.message != null) ...[
-                    SizedBox(height: tokens.space3),
-                    Text(
-                      captureState.message!,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: tokens.success),
-                    ),
-                  ],
-                  SizedBox(height: tokens.space6),
-                  _Section(
-                    title: '归巢历史',
-                    child: captureState.history.isEmpty
-                        ? const _EmptyState(text: '暂无归巢记录')
-                        : Column(
-                            children: captureState.history
-                                .map((item) => _HistoryTile(item: item))
-                                .toList(),
-                          ),
+                  _VaultDiscoveryCard(
+                    candidates: vaultCandidates,
+                    onUseVault: onUseDiscoveredVault,
+                    onChooseOther: onChooseVault,
                   ),
                 ],
-              ),
+                if (captureState.pendingItem != null) ...[
+                  SizedBox(height: tokens.space6),
+                  _PendingCapture(
+                    item: captureState.pendingItem!,
+                    isArchiving: captureState.isArchiving,
+                    onConfirm: onConfirmPending,
+                    onDismiss: onDismissPending,
+                  ),
+                ],
+                if (captureState.message != null) ...[
+                  SizedBox(height: tokens.space3),
+                  Text(
+                    captureState.message!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: tokens.success,
+                        ),
+                  ),
+                ],
+                SizedBox(height: tokens.space6),
+                NestSettings(
+                  config: config,
+                  effectiveClipboardWatching: effectiveClipboardWatching,
+                  captureState: captureState,
+                  vaultPathController: vaultPathController,
+                  llmBaseUrlController: llmBaseUrlController,
+                  llmApiKeyController: llmApiKeyController,
+                  llmModelController: llmModelController,
+                  manualUrlController: manualUrlController,
+                  forceExpanded: settingsForceExpanded,
+                  onChooseVault: onChooseVault,
+                  onSaveVault: onSaveVault,
+                  onRediscoverVaults: onRediscoverVaults,
+                  onSaveLlm: onSaveLlm,
+                  onRemoveBlockedDomain: onRemoveBlockedDomain,
+                  onToggleClipboard: onToggleClipboard,
+                  onManualArchive: onManualArchive,
+                ),
+                SizedBox(height: tokens.space4),
+                NestFooter(onExitApp: onExitApp),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.roostyTokens;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tokens.bgCard,
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        border: Border.all(color: tokens.divider),
-        boxShadow: tokens.shadowSm,
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(tokens.space4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            SizedBox(height: tokens.space3),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.roostyTokens;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tokens.bgElevated,
-        borderRadius: BorderRadius.circular(tokens.radiusMd),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: tokens.space4,
-          vertical: tokens.space3,
-        ),
-        child: Text(
-          text,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: tokens.textSecondary),
-        ),
-      ),
-    );
-  }
-}
-
-class _BlockedDomainTile extends StatelessWidget {
-  const _BlockedDomainTile({required this.domain, required this.onRemove});
-
-  final String domain;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.roostyTokens;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: tokens.divider)),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.block, color: tokens.textSecondary),
-        title: Text(domain, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: IconButton(
-          tooltip: '移除',
-          onPressed: onRemove,
-          icon: const Icon(Icons.close),
         ),
       ),
     );
@@ -934,32 +655,6 @@ class _PendingCapture extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.item});
-
-  final Item item;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.roostyTokens;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: tokens.divider)),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.article_outlined, color: tokens.primary),
-        title: Text(
-          item.title ?? item.url,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(item.url, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }
