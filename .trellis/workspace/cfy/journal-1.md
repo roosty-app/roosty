@@ -340,3 +340,39 @@ Fixed tray mouse handling, resident close/minimize behavior, session-only clipbo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: brand visual reframe — nest narrative UI
+
+**Date**: 2026-06-22
+**Task**: brand visual reframe — nest narrative UI
+**Branch**: `master`
+
+### Summary
+
+完成 brand-visual-reframe 全部 4 个 phase 的代码侧改造（Phase 5 截图待补）。Phase 1: NestHeader + 三段式 NestStatusStrip 替换 AppBar，tagline '把散落的内容叼回知识库'。Phase 2: NestStage + 路径 A 几何空巢插画（CustomPaint 双枝条 + 三蛋）+ NestEntryCard + NestEntryGrid。Phase 3: 6-Section 列表全部收纳进 NestSettings 折叠面板 + NestFooter 退出按钮，删除 _HomeContent / _Section / _EmptyState / _HistoryTile / _BlockedDomainTile 等遗留私有类。Phase 4: mini card 标题改 '一只链接落到了枝头'，主按钮 '飞回巢' + arrow_outward，加入场（slide-in 220ms）+ 离场（左上滑 280ms + scale 0.96）动效。flutter analyze 0 issue / 65 tests 全过。子任务 brand-visual-reframe + 父任务 pre-opensource-polish 已 archive。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c9d2187` | (see git log) |
+| `fe63faa` | (see git log) |
+| `0542359` | (see git log) |
+| `5479a87` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
