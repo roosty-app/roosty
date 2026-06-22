@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
-- **Last Active**: 2026-06-20
+- **Total Sessions**: 10
+- **Last Active**: 2026-06-22
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~309 | Active |
+| `journal-1.md` | ~342 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-06-22 | drop mobile scope (deferred) + plan brand visual reframe | `30ad58f` | `master` |
 | 9 | 2026-06-20 | UI visual redesign + token visual-validation lessons | `de5cc40` | `master` |
 | 8 | 2026-06-20 | Tray lifecycle and resident window behavior | `b2e7382` | `master` |
 | 7 | 2026-06-20 | Windows clipboard mini capture windows | `77e024b` | `master` |

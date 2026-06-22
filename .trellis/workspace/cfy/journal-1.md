@@ -307,3 +307,36 @@ Fixed tray mouse handling, resident close/minimize behavior, session-only clipbo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: drop mobile scope (deferred) + plan brand visual reframe
+
+**Date**: 2026-06-22
+**Task**: drop mobile scope (deferred) + plan brand visual reframe
+**Branch**: `master`
+
+### Summary
+
+确定 v1 桌面优先：把 Android 端从 v1 scope 暂缓（不删除），代码加冻结注释，文档（ROADMAP/DECISIONS/README/m4-PRD）统一 ⏸ 暂缓口径并写明恢复条件。同时完成 pre-opensource-polish 父任务规划：drop-mobile-scope 已 archive；brand-visual-reframe（C 档大改：归巢叙事 UI 重塑）三件套 PRD/design/implement 写完待 start。顺带 archive 已完成的 ux-overhaul 父任务。flutter analyze 0 issue / 49 tests 全过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `30ad58f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
