@@ -16,6 +16,7 @@ import 'desktop_lifecycle.dart';
 import 'desktop_mini_card_window_host.dart';
 import 'desktop_tray_bridge.dart';
 import 'mini_card_window.dart';
+import 'nest/nest_header.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -59,53 +60,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: const Text('Roosty')),
-          body: appConfig.when(
-            data: (config) {
-              _syncVaultController(config, isAndroid: isAndroid);
-              _syncLlmControllers(config.llm);
-              final showVaultDiscovery =
-                  !isAndroid &&
-                  (_forceShowVaultDiscovery ||
-                      (config.vaultPath?.trim().isEmpty ?? true));
-              return _HomeContent(
-                config: config,
-                effectiveClipboardWatching: effectiveClipboardWatching,
-                isAndroid: isAndroid,
-                showVaultDiscovery: showVaultDiscovery,
-                vaultCandidates: vaultCandidates,
-                captureState: captureState,
-                vaultPathController: _vaultPathController,
-                llmBaseUrlController: _llmBaseUrlController,
-                llmApiKeyController: _llmApiKeyController,
-                llmModelController: _llmModelController,
-                manualUrlController: _manualUrlController,
-                onChooseVault: () => _chooseVault(config, isAndroid: isAndroid),
-                onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
-                onRediscoverVaults: _rediscoverVaults,
-                onUseDiscoveredVault: _useDiscoveredVault,
-                onSaveLlm: _saveLlmConfig,
-                onRemoveBlockedDomain: _removeBlockedDomain,
-                onToggleClipboard: (enabled) {
-                  ref
-                      .read(clipboardWatchingSessionOverrideProvider.notifier)
-                      .clear();
-                  ref
-                      .read(appConfigControllerProvider.notifier)
-                      .updateClipboardWatchingEnabled(enabled);
-                },
-                onManualArchive: _archiveManualUrl,
-                onExitApp: () => confirmExitRoosty(context),
-                onConfirmPending: () {
-                  ref.read(captureControllerProvider.notifier).archivePending();
-                },
-                onDismissPending: () {
-                  ref.read(captureControllerProvider.notifier).dismissPending();
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => const Center(child: Text('配置加载失败')),
+          body: Column(
+            children: [
+              const NestHeader(),
+              Expanded(
+                child: appConfig.when(
+                  data: (config) {
+                    _syncVaultController(config, isAndroid: isAndroid);
+                    _syncLlmControllers(config.llm);
+                    final showVaultDiscovery =
+                        !isAndroid &&
+                        (_forceShowVaultDiscovery ||
+                            (config.vaultPath?.trim().isEmpty ?? true));
+                    return _HomeContent(
+                      config: config,
+                      effectiveClipboardWatching: effectiveClipboardWatching,
+                      isAndroid: isAndroid,
+                      showVaultDiscovery: showVaultDiscovery,
+                      vaultCandidates: vaultCandidates,
+                      captureState: captureState,
+                      vaultPathController: _vaultPathController,
+                      llmBaseUrlController: _llmBaseUrlController,
+                      llmApiKeyController: _llmApiKeyController,
+                      llmModelController: _llmModelController,
+                      manualUrlController: _manualUrlController,
+                      onChooseVault: () =>
+                          _chooseVault(config, isAndroid: isAndroid),
+                      onSaveVault: () => _saveVaultPath(isAndroid: isAndroid),
+                      onRediscoverVaults: _rediscoverVaults,
+                      onUseDiscoveredVault: _useDiscoveredVault,
+                      onSaveLlm: _saveLlmConfig,
+                      onRemoveBlockedDomain: _removeBlockedDomain,
+                      onToggleClipboard: (enabled) {
+                        ref
+                            .read(
+                              clipboardWatchingSessionOverrideProvider.notifier,
+                            )
+                            .clear();
+                        ref
+                            .read(appConfigControllerProvider.notifier)
+                            .updateClipboardWatchingEnabled(enabled);
+                      },
+                      onManualArchive: _archiveManualUrl,
+                      onExitApp: () => confirmExitRoosty(context),
+                      onConfirmPending: () {
+                        ref
+                            .read(captureControllerProvider.notifier)
+                            .archivePending();
+                      },
+                      onDismissPending: () {
+                        ref
+                            .read(captureControllerProvider.notifier)
+                            .dismissPending();
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => const Center(child: Text('配置加载失败')),
+                ),
+              ),
+            ],
           ),
         ),
         if (!isAndroid && !isWindows && miniCardState.cards.isNotEmpty)
