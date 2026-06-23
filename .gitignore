@@ -37,6 +37,9 @@ migrate_working_dir/
 # Local scratch (截图临时区，提交前手动搬到 docs/screenshots/)
 /screenshot/
 
+# Marketing drafts (发帖文案，不入公开仓库)
+/marketing/
+
 # Symbolication related
 app.*.symbols
 
