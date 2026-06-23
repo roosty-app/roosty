@@ -36,8 +36,19 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
     mode: ChannelMode.unidirectional,
   );
 
+  /// Total duration of the tray-bound exit animation. Matches design.md §4
+  /// (`Curves.easeInCubic`, 280 ms) and gives the action-channel call enough
+  /// time to flush before the window closes.
+  static const _exitDuration = Duration(milliseconds: 280);
+
+  /// Fallback dismiss vector when the host did not provide one. Drifts toward
+  /// the bottom-right corner — the default Windows taskbar / tray position —
+  /// instead of the legacy upper-left void.
+  static const _fallbackFlight = Offset(200, 200);
+
   late MiniCardModel _card;
   late int _indexFromBottom;
+  late Offset _flightOffset;
   bool _closing = false;
 
   @override
@@ -45,6 +56,7 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
     super.initState();
     _card = widget.initialArguments.card;
     _indexFromBottom = widget.initialArguments.indexFromBottom;
+    _flightOffset = _resolveFlight(widget.initialArguments);
     unawaited(widget.windowController.setWindowMethodHandler(_handleCall));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_configureAndShow());
@@ -61,20 +73,35 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
       themeMode: ThemeMode.system,
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: AnimatedSlide(
-          offset: _closing ? const Offset(0.12, 0) : Offset.zero,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          child: AnimatedOpacity(
-            opacity: _closing ? 0 : 1,
-            duration: const Duration(milliseconds: 200),
-            child: MiniCardWindow(
-              card: _card,
-              isArchiving: false,
-              onArchive: () => _sendAction('archive'),
-              onIgnoreOnce: () => _sendAction('ignoreOnce'),
-              onBlockDomain: () => _sendAction('blockDomain'),
-            ),
+        body: TweenAnimationBuilder<double>(
+          // Runs forward (0 -> 1) only when `_closing` flips; while the card
+          // is alive `end` stays at 0 and no animation kicks off.
+          tween: Tween<double>(begin: 0, end: _closing ? 1 : 0),
+          duration: _exitDuration,
+          curve: Curves.easeInCubic,
+          builder: (context, t, child) {
+            final progress = t.clamp(0.0, 1.0);
+            final dx = _flightOffset.dx * progress;
+            final dy = _flightOffset.dy * progress;
+            final scale = 1.0 - 0.7 * progress; // 1.0 -> 0.3
+            final opacity = (1.0 - progress).clamp(0.0, 1.0);
+            return Opacity(
+              opacity: opacity,
+              child: Transform.translate(
+                offset: Offset(dx, dy),
+                child: Transform.scale(
+                  scale: scale,
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: MiniCardWindow(
+            card: _card,
+            isArchiving: false,
+            onArchive: () => _sendAction('archive'),
+            onIgnoreOnce: () => _sendAction('ignoreOnce'),
+            onBlockDomain: () => _sendAction('blockDomain'),
           ),
         ),
       ),
@@ -93,6 +120,7 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
         setState(() {
           _card = arguments.card;
           _indexFromBottom = arguments.indexFromBottom;
+          _flightOffset = _resolveFlight(arguments);
         });
         await _positionWindow();
         return true;
@@ -102,6 +130,19 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
       default:
         throw MissingPluginException('No handler for ${call.method}');
     }
+  }
+
+  Offset _resolveFlight(MiniCardWindowArguments arguments) {
+    final dx = arguments.flightDx;
+    final dy = arguments.flightDy;
+    if (dx == null || dy == null) {
+      return _fallbackFlight;
+    }
+    final candidate = Offset(dx, dy);
+    if (candidate.distanceSquared < 1) {
+      return _fallbackFlight;
+    }
+    return candidate;
   }
 
   Future<void> _configureAndShow() async {
@@ -174,7 +215,7 @@ class _MiniCardStandaloneAppState extends State<MiniCardStandaloneApp> {
         _closing = true;
       });
     }
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    await Future<void>.delayed(_exitDuration);
     await windowManager.close();
   }
 }

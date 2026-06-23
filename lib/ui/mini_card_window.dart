@@ -212,8 +212,11 @@ class MiniCardWindow extends StatelessWidget {
   /// [_MiniCardEntryAnimator]; this builder returns the child unchanged so
   /// the two layers do not stack into a double animation on first mount.
   ///
-  /// Exit (status reverse / dismissed): slide ~24px toward upper-left,
-  /// fade out, and shrink to ~0.96 to express "归巢飞走" per design.md §4.
+  /// Exit (status reverse / dismissed): slide toward the bottom-right (the
+  /// default Windows tray position), shrink to 0.3, and fade — the same
+  /// "card flies into the tray" sequence the standalone window uses. The
+  /// in-app deck does not have an exact tray vector available, so the
+  /// direction is the conservative fallback used elsewhere.
   Widget _buildSwitcherTransition(Widget child, Animation<double> animation) {
     return AnimatedBuilder(
       animation: animation,
@@ -226,12 +229,14 @@ class MiniCardWindow extends StatelessWidget {
           return animatedChild!;
         }
         final t = animation.value.clamp(0.0, 1.0);
-        final translate = -24.0 * (1 - t);
-        final scale = 0.96 + 0.04 * t;
+        // `t` runs from 1 -> 0 on reverse; convert to exit progress.
+        final progress = 1.0 - t;
+        const flight = Offset(200, 200);
+        final scale = 1.0 - 0.7 * progress;
         return Opacity(
           opacity: t,
           child: Transform.translate(
-            offset: Offset(translate, translate),
+            offset: flight * progress,
             child: Transform.scale(
               scale: scale,
               child: animatedChild,

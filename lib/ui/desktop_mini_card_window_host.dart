@@ -6,9 +6,12 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 import '../core/core_providers.dart';
 import '../core/mini_card.dart';
+import 'desktop_tray_bridge.dart';
+import 'mini_card_standalone_app.dart';
 
 class DesktopMiniCardWindowHost extends ConsumerStatefulWidget {
   const DesktopMiniCardWindowHost({super.key});
@@ -84,6 +87,12 @@ class _DesktopMiniCardWindowHostState
       return false;
     }
 
+    // All three exits (archive / ignoreOnce / blockDomain) share the same
+    // "card flies into the tray" feedback: the standalone window is already
+    // animating itself toward the tray vector, so we trigger the tray-icon
+    // blink here to close the loop visually.
+    unawaited(TrayController.instance.flashTrayIcon());
+
     switch (action) {
       case 'archive':
         unawaited(
@@ -131,9 +140,13 @@ class _DesktopMiniCardWindowHostState
 
     for (var index = 0; index < cards.length; index += 1) {
       final card = cards[index];
+      final indexFromBottom = cards.length - 1 - index;
+      final flight = await _computeFlightVector(indexFromBottom);
       final arguments = MiniCardWindowArguments(
         card: card,
-        indexFromBottom: cards.length - 1 - index,
+        indexFromBottom: indexFromBottom,
+        flightDx: flight?.dx,
+        flightDy: flight?.dy,
       );
       final existing = _windows[card.id];
       if (existing == null) {
@@ -142,6 +155,47 @@ class _DesktopMiniCardWindowHostState
         await _updateWindow(existing, arguments);
       }
     }
+  }
+
+  /// Computes the delta from the standalone mini-card window center to the
+  /// tray icon center, in logical pixels.
+  ///
+  /// The card window is sized 380x200 and positioned in the bottom-right of
+  /// the primary display visible region (mirrors [_positionWindow] inside
+  /// [MiniCardStandaloneApp]). Tray bounds come from `tray_manager`. When
+  /// either piece is unavailable we fall back to a +200/+200 vector so the
+  /// dismiss animation still drifts toward the bottom-right corner instead
+  /// of the upper-left void.
+  Future<Offset?> _computeFlightVector(int indexFromBottom) async {
+    try {
+      final display = await screenRetriever.getPrimaryDisplay();
+      final visiblePosition = display.visiblePosition ?? Offset.zero;
+      final visibleSize = display.visibleSize ?? display.size;
+      final cardLeft = visiblePosition.dx +
+          visibleSize.width -
+          miniCardWindowSize.width -
+          miniCardWindowMargin;
+      final cardTop = visiblePosition.dy +
+          visibleSize.height -
+          miniCardWindowSize.height -
+          miniCardWindowMargin -
+          indexFromBottom *
+              (miniCardWindowSize.height + miniCardWindowGap);
+      final cardCenter = Offset(
+        cardLeft + miniCardWindowSize.width / 2,
+        cardTop + miniCardWindowSize.height / 2,
+      );
+
+      final trayBounds = await TrayController.instance.getTrayBounds();
+      if (trayBounds != null && trayBounds.width > 0 && trayBounds.height > 0) {
+        return trayBounds.center - cardCenter;
+      }
+    } on MissingPluginException {
+      // Tests / non-Windows: fall through to default vector.
+    } catch (_) {
+      // Display or tray probe failed; fall through.
+    }
+    return const Offset(200, 200);
   }
 
   Future<void> _createWindow(MiniCardWindowArguments arguments) async {

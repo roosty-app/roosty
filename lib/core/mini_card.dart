@@ -74,10 +74,19 @@ class MiniCardWindowArguments {
   const MiniCardWindowArguments({
     required this.card,
     required this.indexFromBottom,
+    this.flightDx,
+    this.flightDy,
   });
 
   final MiniCardModel card;
   final int indexFromBottom;
+
+  /// Pixel-space delta from the mini-card window center to the tray icon
+  /// center. The standalone window uses this to point its dismiss animation
+  /// toward the real tray. Both axes are nullable so the subwindow can fall
+  /// back to a sensible default when the tray bounds are unknown.
+  final double? flightDx;
+  final double? flightDy;
 
   factory MiniCardWindowArguments.fromJson(Map<String, dynamic> json) {
     return MiniCardWindowArguments(
@@ -85,6 +94,8 @@ class MiniCardWindowArguments {
         Map<String, dynamic>.from(json['card'] as Map),
       ),
       indexFromBottom: json['indexFromBottom'] as int? ?? 0,
+      flightDx: (json['flightDx'] as num?)?.toDouble(),
+      flightDy: (json['flightDy'] as num?)?.toDouble(),
     );
   }
 
@@ -93,6 +104,8 @@ class MiniCardWindowArguments {
       'type': miniCardWindowType,
       'card': card.toJson(),
       'indexFromBottom': indexFromBottom,
+      if (flightDx != null) 'flightDx': flightDx,
+      if (flightDy != null) 'flightDy': flightDy,
     };
   }
 }

@@ -34,6 +34,9 @@ migrate_working_dir/
 /coverage/
 /dist/
 
+# Local scratch (截图临时区，提交前手动搬到 docs/screenshots/)
+/screenshot/
+
 # Symbolication related
 app.*.symbols
 
