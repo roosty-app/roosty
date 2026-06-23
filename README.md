@@ -121,3 +121,7 @@ status: unread
 ## License
 
 [MIT](./LICENSE)
+
+## 致谢
+
+- 在 [LINUX DO](https://linux.do) 社区交流并发布开源推广。
