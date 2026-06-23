@@ -447,3 +447,36 @@ v1 开源发布 ship 出去了。新 GitHub 组织 roosty-app（roosty-io 已被
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: v1.0.1 tray-bound flight + M4 close
+
+**Date**: 2026-06-23
+**Task**: v1.0.1 tray-bound flight + M4 close
+**Branch**: `main`
+
+### Summary
+
+v1.0.1 patch release：mini card 归巢退场动画从'飞向左上虚空'改成'飞向真实托盘图标位置 + 托盘闪烁两次'。子代理实现：TrayController.instance 单例（getTrayBounds + flashTrayIcon with Timer.periodic + sequence-id guard），host 算 flight vector 注入 MiniCardWindowArguments 的 flightDx/Dy，subwindow 用 TweenAnimationBuilder 替换原右滑淡出做方向感飞行 + scale 1.0→0.3 + fade 280ms easeInCubic。三个出口（飞回巢/忽略一次/永不归档此域名）共用同一段动画。fallback：getBounds null 时飞向屏幕右下角。Build script 改进生效——抓到了 roosty.exe 进程残留导致 LNK1104，杀进程后正常 build。dist/roosty-windows-v1.0.1.zip 已发 Release。同时 archive m4-opensource-release（v1.0.0 + v1.0.1 已发，工作量完成）+ tray-bound-flight。flutter analyze 0 / 67 tests 全过（+2 tray）。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bfecd07` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

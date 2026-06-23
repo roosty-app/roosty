@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
+- **Total Sessions**: 14
 - **Last Active**: 2026-06-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~449 | Active |
+| `journal-1.md` | ~482 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-06-23 | v1.0.1 tray-bound flight + M4 close | `bfecd07` | `main` |
 | 13 | 2026-06-23 | M4 ship: GitHub org, repo, v1.0.0 release + secret audit spec | `679f911`, `fcb8984`, `5055b59`, `96414b0`, `4e57faa` | `main` |
 | 12 | 2026-06-22 | M4-α: in-repo open-source prep (config / build script / readme) | `679f911`, `fcb8984` | `master` |
 | 11 | 2026-06-22 | brand visual reframe — nest narrative UI | `c9d2187`, `fe63faa`, `0542359`, `5479a87` | `master` |
